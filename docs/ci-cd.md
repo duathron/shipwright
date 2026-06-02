@@ -17,10 +17,12 @@ Manual rungs are **GitHub Environments with required reviewers**. The release wo
       pull_request:
     jobs:
       ci:
-        uses: duathron/shipwright/.github/workflows/python-ci.yml@v1
+        uses: duathron/shipwright/.github/workflows/python-ci.yml@main
         with:
           python-version: "3.11"   # optional, default 3.11
           run-build: true          # optional, default true
+
+> **Pinning:** examples use `@main` while Shipwright is pre-release. Once release automation cuts tagged releases, pin to a major tag (e.g. `@v1`) for stability.
 
 ## Release — `.github/workflows/release.yml` in a project
 
@@ -30,7 +32,7 @@ Manual rungs are **GitHub Environments with required reviewers**. The release wo
         branches: [main]
     jobs:
       release:
-        uses: duathron/shipwright/.github/workflows/python-release.yml@v1
+        uses: duathron/shipwright/.github/workflows/python-release.yml@main
         with:
           release-environment: pypi   # GitHub Environment gating publish
           prerelease: false           # true → PyPI pre-release (e.g. 1.6.0b1)
