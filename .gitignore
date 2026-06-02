@@ -9,6 +9,11 @@ dist/
 build/
 *.egg-info/
 
+# Secrets — keep the documented .env safety net real (see SECURITY.md)
+.env
+.env.*
+!.env.example
+
 # Tooling caches
 .ruff_cache/
 .pytest_cache/
