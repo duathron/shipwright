@@ -1,0 +1,42 @@
+name: Reusable Python CI
+
+on:
+  workflow_call:
+    inputs:
+      python-version:
+        description: "Python version to test against"
+        type: string
+        default: "3.11"
+      working-directory:
+        description: "Directory of the project to build/test"
+        type: string
+        default: "."
+      run-build:
+        description: "Whether to run 'uv build' (set false for non-package repos)"
+        type: boolean
+        default: true
+
+jobs:
+  lint-and-test:
+    name: Lint, test${{ inputs.run-build && ', build' || '' }}
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ${{ inputs.working-directory }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+      - name: Set up Python
+        run: uv python install ${{ inputs.python-version }}
+      - name: Sync dev environment
+        run: uv sync --dev
+      - name: Lint
+        run: |
+          uv run ruff check .
+          uv run ruff format --check .
+      - name: Test
+        run: uv run pytest -q
+      - name: Build
+        if: ${{ inputs.run-build }}
+        run: uv build
