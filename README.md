@@ -1,6 +1,6 @@
-# coding-framework
+# Shipwright
 
-> Provisional name — a distributable, **AI-agent-operated development framework**.
+> A distributable, **AI-agent-operated development framework**.
 
 A single, reusable home for the standards, tooling, and CI/CD that develop
 software projects start-to-finish. The framework owns the complexity; the
@@ -17,7 +17,7 @@ project into the **gitignored** `projects/` directory, where a
 and testing:
 
 ```
-coding-framework/
+shipwright/
 ├─ tooling/ruff-base.toml   # single source of truth for lint rules
 ├─ justfile                 # shared task verbs (lint / fmt / test)
 ├─ .pre-commit-config.yaml  # local gate (ruff + gitleaks) mirroring CI
