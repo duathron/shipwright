@@ -11,6 +11,14 @@ on:
         description: "Publish as a pre-release (PyPI pre-release tags, e.g. 1.6.0b1)"
         type: boolean
         default: false
+      config-file:
+        description: "Path to the release-please config file (relative to consumer repo root)"
+        type: string
+        default: "release-please-config.json"
+      manifest-file:
+        description: "Path to the release-please manifest file (relative to consumer repo root)"
+        type: string
+        default: ".release-please-manifest.json"
 
 permissions:
   contents: write
@@ -26,8 +34,8 @@ jobs:
       - uses: googleapis/release-please-action@v4
         id: rp
         with:
-          config-file: release-please-config.json
-          manifest-file: .release-please-manifest.json
+          config-file: ${{ inputs.config-file }}
+          manifest-file: ${{ inputs.manifest-file }}
 
   publish:
     name: Build + publish to PyPI (OIDC)
