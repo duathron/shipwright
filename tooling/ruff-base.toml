@@ -1,0 +1,8 @@
+# Canonical ruff config — single source of truth for the framework and all
+# scaffolded projects. Projects receive a copy via the Copier template; the
+# framework itself extends this file from its pyproject.toml.
+target-version = "py311"
+line-length = 120
+
+[lint]
+select = ["E", "F", "I", "W"]
