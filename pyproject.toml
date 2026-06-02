@@ -1,0 +1,24 @@
+[project]
+name = "coding-framework"
+version = "0.1.0"
+description = "AI-agent-operated development framework (provisional name)"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = []
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0", "ruff>=0.8", "pre-commit>=4.0"]
+
+# uv workspace: members are the locally-integrated projects (gitignored).
+# When projects/ is empty, the glob matches nothing — that is fine.
+[tool.uv.workspace]
+members = ["projects/*"]
+
+[tool.uv]
+# The framework root is not a publishable package itself.
+package = false
+
+# Dogfooding: the framework lints itself with the SAME canonical config
+# that scaffolded projects will receive.
+[tool.ruff]
+extend = "tooling/ruff-base.toml"
