@@ -48,4 +48,4 @@ The project must include `release-please-config.json` and `.release-please-manif
 
 ## Pre-releases (beta channel)
 
-Set `prerelease: true` and let release-please produce a pre-release version (e.g. `1.6.0b1`). Users get it only with `pip install --pre <package>`; stable users are unaffected. TestPyPI is used only as an internal publish dry-run.
+Set `prerelease: true` and let release-please produce a pre-release version (e.g. `1.6.0b1`). Users get it only with `pip install --pre <package>`; stable users are unaffected.
