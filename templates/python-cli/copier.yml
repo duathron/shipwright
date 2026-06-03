@@ -1,0 +1,30 @@
+_subdirectory: project
+_templates_suffix: .jinja
+
+project_name:
+  type: str
+  help: Human-readable project name (e.g. "Acme Scanner")
+pypi_name:
+  type: str
+  help: PyPI distribution name (e.g. acme-scanner)
+package_name:
+  type: str
+  help: Python import package, snake_case (e.g. acme_scanner)
+cli_command:
+  type: str
+  help: CLI command users type (e.g. acme)
+description:
+  type: str
+  help: One-line description
+env_prefix:
+  type: str
+  help: Uppercase env var prefix for config (e.g. ACME)
+author_name:
+  type: str
+  default: Christian Huhn
+author_email:
+  type: str
+  default: duathron@gmail.com
+python_version:
+  type: str
+  default: "3.11"

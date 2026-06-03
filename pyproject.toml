@@ -22,3 +22,6 @@ package = false
 # that scaffolded projects will receive.
 [tool.ruff]
 extend = "tooling/ruff-base.toml"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

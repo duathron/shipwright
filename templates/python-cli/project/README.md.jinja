@@ -1,0 +1,20 @@
+# {{ project_name }}
+
+{{ description }}
+
+## Install
+    pip install {{ pypi_name }}
+
+## Usage
+    {{ cli_command }} classify 8.8.8.8
+    {{ cli_command }} version
+
+## Development
+Built with the [Shipwright](https://github.com/duathron/shipwright) framework.
+
+    uv sync --dev
+    uv run pre-commit install
+    just lint && just test && just dogfood
+
+## License
+MIT (c) {{ author_name }}

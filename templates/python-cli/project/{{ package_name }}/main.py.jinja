@@ -1,0 +1,37 @@
+"""{{ project_name }} — CLI entry point."""
+
+from __future__ import annotations
+
+import typer
+from rich.console import Console
+
+from {{ package_name }} import __version__
+from {{ package_name }}.detect import classify as classify_input
+
+app = typer.Typer(
+    name="{{ cli_command }}",
+    help="{{ description }}",
+    add_completion=False,
+    no_args_is_help=True,
+)
+console = Console()
+
+
+@app.command()
+def classify(value: str = typer.Argument(..., help="Input to classify")):
+    """Classify an input string (example parse boundary)."""
+    console.print(classify_input(value))
+
+
+@app.command()
+def version():
+    """Print the version."""
+    console.print(__version__)
+
+
+def main() -> None:
+    app()
+
+
+if __name__ == "__main__":
+    main()

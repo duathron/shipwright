@@ -1,0 +1,18 @@
+# {{ project_name }}
+
+CLI tool: {{ description }}. Built with the Shipwright framework.
+
+## Rules
+- All code, commits, docs in English.
+- Architecture: Typer CLI, Pydantic v2 models, Rich output (package under `{{ package_name }}/`).
+- Config hierarchy: CLI flags > env (`{{ env_prefix }}_*`) > `~/.{{ cli_command }}/config.yaml` > defaults.
+- `__version__` is a literal (never importlib.metadata — stale on editable installs).
+
+## Quality policy (from Shipwright — enforced)
+- **No self-review** — gate every change with an independent reviewer (the Skeptic persona).
+- **No release without a dogfood pass** — `just dogfood` (real + adversarial inputs) must pass.
+- **Parse liberally at boundaries** — external input never raises; unknown -> safe fallback (see `{{ package_name }}/detect.py`).
+- **Two test tiers** — Tier-1 mocked every push (CI); Tier-2 live+recorded before release.
+
+## Dev loop
+`uv sync --dev` · `uv run pre-commit install` · `just lint` · `just test` · `just dogfood`

@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+# Dogfood gate — run the real CLI against real + adversarial inputs.
+# Framework QA policy: no release without a dogfood pass.
+set -uo pipefail
+
+CMD="{{ cli_command }}"
+fail=0
+
+run() {
+  uv run "$CMD" classify "$1" >/dev/null 2>&1
+  code=$?
+  if [ "$code" -ge 2 ]; then
+    echo "DOGFOOD FAIL: '$1' exited $code"
+    fail=1
+  fi
+}
+
+echo "== dogfood: real inputs =="
+for i in 8.8.8.8 example.com "$(printf 'a%.0s' {1..40})"; do run "$i"; done
+
+echo "== dogfood: adversarial inputs =="
+for i in "" "report.dll" "/etc/passwd" "a sentence." "boom" "999.999.999.999"; do run "$i"; done
+
+# --- LIVE tier (opt-in) ---
+# Add real service calls here. Read the API key from {{ env_prefix }}_API_KEY,
+# and if it is unset, print "dogfood SKIPPED (live): no key" and continue.
+# A skipped live tier must NOT satisfy the release gate (skip != pass).
+
+if [ "$fail" -ne 0 ]; then echo "DOGFOOD: FAIL"; exit 1; fi
+echo "DOGFOOD: PASS"
