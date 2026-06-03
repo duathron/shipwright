@@ -7,10 +7,11 @@ CMD="{{ cli_command }}"
 fail=0
 
 run() {
-  uv run "$CMD" classify "$1" >/dev/null 2>&1
-  code=$?
-  if [ "$code" -ge 2 ]; then
-    echo "DOGFOOD FAIL: '$1' exited $code"
+  # ANY non-zero exit = the CLI failed on this input (a crash exits 1, a usage
+  # error exits 2). The CLI must handle every input gracefully and exit 0.
+  if ! out="$(uv run "$CMD" classify "$1" 2>&1)"; then
+    echo "DOGFOOD FAIL: '$1' exited nonzero"
+    printf '%s\n' "$out" | tail -3
     fail=1
   fi
 }
