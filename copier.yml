@@ -1,4 +1,4 @@
-_subdirectory: project
+_subdirectory: templates/python-cli/project
 _templates_suffix: .jinja
 
 project_name:
