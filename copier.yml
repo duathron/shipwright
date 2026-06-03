@@ -30,3 +30,8 @@ author_email:
 python_version:
   type: str
   default: "3.11"
+preset:
+  type: str
+  help: "Pack preset: 'none' (generic) or 'security' (threat theme, eval, IOC/STIX)"
+  choices: ["none", "security"]
+  default: none
