@@ -9,6 +9,7 @@ and [Semantic Versioning](https://semver.org/).
 - python-release: `config-file`/`manifest-file` are now overridable workflow inputs (were hardcoded)
 
 ### Added
+- Skills layer: scaffold, propagate, onboard, quality-gate, dogfood, review, meetup, release (`skills/`).
 - Framework foundation: uv workspace, single-source ruff config, just runner,
   pre-commit (+ gitleaks), dogfood CI, governance files.
 - Reusable CI/CD: `python-ci.yml` (dogfooded by Shipwright's own CI) and
