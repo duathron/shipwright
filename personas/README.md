@@ -4,9 +4,10 @@ Reference **agent mindsets** the framework ships with. Each file is a prompt you
 dispatch as a subagent — a focused expert or reviewer with one clear job. They
 are the human-less "team" that designs, builds, and gates work in Shipwright.
 
-These are reference mindsets, not invokable commands. The actionable layer
+These are reference mindsets, not invokable commands. A future actionable layer
 (skills like `scaffold`, `release`, `quality-gate`, `dogfood`, `meetup`,
-`review`) orchestrates these personas and lives under `../skills/`.
+`review`) will orchestrate these personas and live under `../skills/` — not yet
+built.
 
 ## Roster
 
