@@ -8,4 +8,4 @@ jobs:
     # Dogfood: Shipwright's CI runs the framework's own reusable workflow.
     uses: ./.github/workflows/python-ci.yml
     with:
-      run-build: false  # Shipwright root is package = false
+      run-build: true

@@ -1,25 +1,27 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "shipwright"
 version = "0.1.0"
-description = "Shipwright — an AI-agent-operated development framework"
+description = "Shipwright — AI-agent dev framework + design-token library"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = []
 
-[dependency-groups]
-dev = ["pytest>=8.0", "ruff>=0.8", "pre-commit>=4.0"]
+[project.optional-dependencies]
+rich = ["rich>=13.7"]
 
-# uv workspace: members are the locally-integrated projects (gitignored).
-# When projects/ is empty, the glob matches nothing — that is fine.
+[dependency-groups]
+dev = ["pytest>=8.0", "ruff>=0.8", "pre-commit>=4.0", "hypothesis>=6.0", "rich>=13.7"]
+
+[tool.setuptools.packages.find]
+include = ["shipwright*"]
+
 [tool.uv.workspace]
 members = ["projects/*"]
 
-[tool.uv]
-# The framework root is not a publishable package itself.
-package = false
-
-# Dogfooding: the framework lints itself with the SAME canonical config
-# that scaffolded projects will receive.
 [tool.ruff]
 extend = "tooling/ruff-base.toml"
 
