@@ -12,9 +12,13 @@ dependencies = []
 
 [project.optional-dependencies]
 rich = ["rich>=13.7"]
+banner = ["pyfiglet>=1.0"]
+
+[project.entry-points."shipwright.packs"]
+security = "shipwright.security.theme:SecurityTheme"
 
 [dependency-groups]
-dev = ["pytest>=8.0", "ruff>=0.8", "pre-commit>=4.0", "hypothesis>=6.0", "rich>=13.7"]
+dev = ["pytest>=8.0", "ruff>=0.8", "pre-commit>=4.0", "hypothesis>=6.0", "rich>=13.7", "copier>=9", "packaging"]
 
 [tool.setuptools.packages.find]
 include = ["shipwright*"]
