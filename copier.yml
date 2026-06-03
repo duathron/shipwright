@@ -21,10 +21,12 @@ env_prefix:
   help: Uppercase env var prefix for config (e.g. ACME)
 author_name:
   type: str
-  default: Christian Huhn
+  help: Project author name
+  default: Your Name
 author_email:
   type: str
-  default: duathron@gmail.com
+  help: Project author email
+  default: you@example.com
 python_version:
   type: str
   default: "3.11"
