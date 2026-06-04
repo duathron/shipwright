@@ -14,3 +14,11 @@ fmt:
 # Run the test suite.
 test:
     uv run pytest -q
+
+# Refresh bundled personas from the vault SSOT (needs $SHIPWRIGHT_VAULT_PERSONAS).
+sync-personas:
+    sh scripts/sync-bundle.sh
+
+# Fail if bundled personas drift from the vault (no-op without the vault).
+check-bundle:
+    sh scripts/check-bundle-drift.sh

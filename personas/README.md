@@ -9,6 +9,24 @@ These are reference mindsets, not invokable commands. A future actionable layer
 `review`) will orchestrate these personas and live under `../skills/` — not yet
 built.
 
+## Source of truth (do not hand-edit here)
+
+These files are a curated **copy** of the vault SSOT (`AI/AGENT PERSONAS/Agents/`).
+Edit the persona **in the vault**, then refresh the bundle:
+
+```sh
+export SHIPWRIGHT_VAULT_PERSONAS="<abs path to AI/AGENT PERSONAS/Agents>"
+just sync-personas
+```
+
+A pre-commit hook (`bundle-drift`) enforces parity **locally** and fails the commit
+if a bundled persona differs from the vault. It is a deliberate no-op wherever the
+vault isn't mounted (CI, fresh clones) — so it never blocks contributors who lack
+the vault. For the gate to have teeth on your machine, export
+`SHIPWRIGHT_VAULT_PERSONAS` somewhere your commit environment sees it (shell profile
+**and** the gitignored `.env`), not only an interactive shell — GUI git clients
+otherwise commit ungated. The absolute path is never committed.
+
 ## Roster
 
 **Design & build**
