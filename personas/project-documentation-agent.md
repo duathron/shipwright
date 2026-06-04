@@ -63,10 +63,12 @@ vex/knowledge/db.py, vex/output/stix.py
 ```python
 Agent(
     subagent_type="general-purpose",
-    prompt="""Analyse the project at projects/<name> completely.
-Read all relevant files (README.md, pyproject.toml, the package source, and any
-architecture/origins docs). Create or update the project's docs/index to reflect
-the current state. Set the date to today; read the version from pyproject.toml.
+    prompt="""Analyse the vex project at /Users/christianhuhn/PycharmProjects/ai_project1/projects/vex completely.
+Read all relevant files (README.md, pyproject.toml, ORIGINS.md, vex/main.py, vex/config.py, vex/models.py,
+vex/client.py, vex/ioc_detector.py, vex/banner.py, vex/mitre/mapping.py, vex/output/formatter.py,
+vex/knowledge/db.py, vex/output/stix.py).
+Create or update ORIGINS.md with the current state.
+Set the date to today, read the version from pyproject.toml.
 All text must be in English. Clear, precise, technical.""",
     description="Update project documentation"
 )
