@@ -3,6 +3,13 @@
 All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 and [Semantic Versioning](https://semver.org/).
 
+## [0.3.0](https://github.com/duathron/shipwright/compare/v0.2.0...v0.3.0) (2026-06-04)
+
+
+### Features
+
+* schema/contract version for eval + output surfaces (G10) ([5a20c9b](https://github.com/duathron/shipwright/commit/5a20c9b5a091c0c0d89c1b41ffe91731eb0e6fb2))
+
 ## [0.2.0](https://github.com/duathron/shipwright/compare/v0.1.1...v0.2.0) (2026-06-04)
 
 
