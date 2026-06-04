@@ -11,7 +11,13 @@ def test_import_is_light_no_rich():
     assert "rich" not in sys.modules, "importing shipwright must not import rich"
 
 
-def test_version_is_literal():
+def test_version_matches_package_metadata():
+    import importlib.metadata
+
     import shipwright
 
-    assert shipwright.__version__ == "0.1.0"
+    # __version__ is a literal string kept in sync with the package version.
+    # release-please bumps pyproject [project] version + __init__ together, so
+    # assert consistency with the installed dist metadata rather than a frozen literal.
+    assert isinstance(shipwright.__version__, str)
+    assert shipwright.__version__ == importlib.metadata.version("shipwright")
