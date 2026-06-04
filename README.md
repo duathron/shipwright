@@ -1,48 +1,106 @@
 # Shipwright
 
-> A distributable, **AI-agent-operated development framework**.
+![CI](https://github.com/duathron/shipwright/actions/workflows/ci.yml/badge.svg)
+![CodeQL](https://github.com/duathron/shipwright/actions/workflows/codeql.yml/badge.svg)
+![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)
+![Python](https://img.shields.io/badge/python-3.11%2B-blue.svg)
 
-A single, reusable home for the standards, tooling, and CI/CD that develop
-software projects start-to-finish. The framework owns the complexity; the
-operator decides and approves while AI agents execute. It ships its own
-standards and **dogfoods them** — this repo passes the exact gates it gives to
-the projects built with it.
+Shipwright is two things that share one repo:
 
-## The `projects/` model
+- an installable, **import-light Python library** of shared dev-tooling runtime —
+  `shipwright.design` (severity tiers + accessible output), `shipwright.eval`
+  (detection-quality eval harness), `shipwright.security` (a security pack);
+- an **AI-agent-operated development framework** — reusable CI/CD, a Copier
+  scaffolder, quality gates, and bundled agent skills + personas — that **dogfoods**
+  the library and the gates it hands to the projects built with it.
 
-The framework repo contains **no project code**. Projects stay their own
-independent Git repositories and their own packages. Locally, you clone each
-project into the **gitignored** `projects/` directory, where a
-[uv](https://docs.astral.sh/uv/) workspace ties them together for development
-and testing:
+The library is consumed today by two real tools: **barb** and **sift** both import
+`shipwright.eval` to run their detection-quality gates.
+
+## Install
+
+The library is **not on PyPI** — the bare name `shipwright` belongs to an unrelated
+project, so the published distribution will be **`shipwright-kit`** (the import name
+stays `shipwright`). For now, install from git:
+
+```bash
+uv pip install "git+https://github.com/duathron/shipwright@main"
+# then: import shipwright
+```
+
+> [!NOTE]
+> Pin a release tag instead of `@main` for reproducible builds once a tagged
+> release of the `shipwright-kit` distribution is cut. Do **not** `pip install
+> shipwright` from PyPI — that is a different, unrelated package.
+
+The security pack needs no extra — it ships with the base install and registers
+through the `shipwright.packs` entry point.
+
+## Library quickstart
+
+**Run an eval gate** — score a classifier against a labeled corpus and fail if it
+misses a floor (the exact pattern barb and sift use):
+
+```python
+from shipwright.eval import Sample, evaluate, gate
+
+corpus = [Sample("phish-login", "phishing"),
+          Sample("example.com", "benign"),
+          Sample("secure-phish", "phishing")]
+
+result = evaluate(
+    lambda text: "phishing" if "phish" in text else "benign",
+    corpus,
+    positive_pred=lambda pred: pred == "phishing",
+    positive_expected=lambda label: label == "phishing",
+)
+print(result.precision, result.recall)        # 1.0 1.0
+gate(result, min_precision=1.0, min_recall=0.9)  # raises EvalGateError if below
+```
+
+**Use the shared severity tiers** — one generic scale tools map their own verdicts
+onto, with accessible (Unicode-or-ASCII) labels:
+
+```python
+from shipwright.design import Severity, tier_label
+
+Severity.OK, Severity.INFO, Severity.NOTICE, Severity.WARN, Severity.CRITICAL  # IntEnum 0..4
+print(tier_label(Severity.CRITICAL))  # ✗ CRITICAL
+print(tier_label(Severity.OK))        # ✓ OK
+```
+
+`import shipwright` pulls in no `rich` or `pyfiglet` — the heavy deps load lazily only
+when you actually render. Full API: **[docs/library.md](docs/library.md)**.
+
+## The framework
+
+The repo contains **no project code**. Projects stay their own Git repositories and
+their own packages; locally you clone each into the **gitignored** `projects/`
+directory, where a [uv](https://docs.astral.sh/uv/) workspace ties them together for
+development:
 
 ```
 shipwright/
+├─ shipwright/              # the importable library (design / eval / security)
 ├─ tooling/ruff-base.toml   # single source of truth for lint rules
-├─ justfile                 # shared task verbs (lint / fmt / test)
-├─ .pre-commit-config.yaml  # local gate (ruff + gitleaks) mirroring CI
-├─ .github/workflows/ci.yml # dogfood CI
-└─ projects/                # GITIGNORED, local-only
-       <your-project>/      # its own repo + own package
+├─ templates/               # Copier scaffolder (python-cli) + release config
+├─ skills/ · personas/      # the agent operating layer (scaffold, onboard, review …)
+├─ .github/workflows/       # reusable python-ci.yml + python-release.yml (SHA-pinned)
+└─ projects/                # GITIGNORED, local-only — your projects plug in here
 ```
-
-Because `projects/` is gitignored, the framework never contains your code and
-stays generic — anyone can clone it and plug in their own projects.
-
-## Quality-gate ladder
 
 Work is promoted through gates; failing a rung blocks promotion:
 
 ```
-commit → lint + unit (auto) → build → smoke (auto) →
+commit → lint + unit (auto) → build → dogfood + eval (auto) →
 QM gate (manual) → beta sign-off (manual) → release
 ```
 
-> The reusable CI/CD that wires these gates, the project scaffolder, and the
-> agent skills are built in later milestones. This repo currently provides the
-> foundation: the shared config, local task runner, gates, and dogfood CI.
+The reusable CI/CD that wires these gates, the Copier scaffolder (`templates/`), and
+the agent skills (`skills/`) and personas (`personas/`) all ship now. This repo runs
+the exact gates it gives the projects built with it.
 
-## Quickstart
+## Framework quickstart
 
 Requires Python 3.11+, [uv](https://docs.astral.sh/uv/), and
 [just](https://github.com/casey/just).
@@ -54,8 +112,21 @@ just lint                  # ruff check + format-check
 just test                  # pytest
 ```
 
-The local gate (`pre-commit`) runs the same checks as CI, so "passes locally"
-means "passes in CI."
+The local `pre-commit` gate runs the same lint/format/secret checks as CI; add
+`just test` (and `uv build`) for the test and build rungs CI also enforces.
+
+## Docs
+
+- **[docs/library.md](docs/library.md)** — per-module API reference (design / eval / security)
+- **[docs/release-policy.md](docs/release-policy.md)** — SemVer + release policy
+- **[docs/ci-cd.md](docs/ci-cd.md)** — the reusable CI/CD workflows
+- **[CHANGELOG.md](CHANGELOG.md)**
+
+## Security
+
+Report vulnerabilities privately via GitHub's
+[private vulnerability reporting](https://github.com/duathron/shipwright/security/advisories/new)
+(repo **Security** tab → **Report a vulnerability**). See [SECURITY.md](SECURITY.md).
 
 ## License
 
