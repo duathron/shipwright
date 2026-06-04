@@ -1,0 +1,9 @@
+input,label
+# benign samples
+example.com,benign
+8.8.8.8,benign
+github.com,benign
+# phishing-ish samples (contain the marker the test predict_fn keys on)
+phish-login.example,phishing
+secure-phish.test,phishing
+phishingbank.test,phishing
