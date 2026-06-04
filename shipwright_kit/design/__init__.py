@@ -2,7 +2,7 @@
 
 from .console import get_console, supports_color, supports_unicode
 from .glyphs import glyph, tier_label
-from .output import VALID_FORMATS, Renderable, render
+from .output import OUTPUT_SCHEMA_VERSION, VALID_FORMATS, Renderable, render
 from .palette import ColorblindTheme, DefaultTheme, Theme
 from .tiers import Severity, TierMappable
 
@@ -20,4 +20,5 @@ __all__ = [
     "VALID_FORMATS",
     "Renderable",
     "render",
+    "OUTPUT_SCHEMA_VERSION",
 ]

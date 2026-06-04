@@ -44,13 +44,32 @@ The reusable release workflow accepts a `prerelease` input → publishes PyPI pr
 Before removing a public symbol: ship it for at least one MINOR with a `DeprecationWarning`
 naming the replacement; remove only in a subsequent MAJOR (or, pre-1.0, a clearly-noted MINOR).
 
-## Output / eval schema contract (forward note)
+## Output / eval schema contract (G10)
 
-The library's structured output (`shipwright_kit.eval` metrics, `shipwright_kit.design` output
-contract) is consumed by separately-versioned tools (barb, sift). Once 2+ tools depend on a
-structural field, that surface needs its **own** schema version + migration story, independent
-of the package version — tracked as gap **G10**. Until then, structural changes to shared
-output are treated as MAJOR-equivalent and coordinated across consumers.
+The library's **serialized** output surfaces are versioned **independently of the package
+version**:
+
+- **`shipwright_kit.eval.EVAL_SCHEMA_VERSION`** — the `EvalResult.to_dict()` shape.
+- **`shipwright_kit.design.OUTPUT_SCHEMA_VERSION`** — the `render(fmt="json")` envelope.
+
+Both are embedded in the serialized output (`"schema_version"` key) so a downstream reader
+can branch on it. A **golden contract test** (`tests/eval/test_schema_contract.py`,
+`tests/design/test_output_schema_contract.py`) pins the exact key-set + value types and
+couples it to the version: **any structural change fails CI** until you deliberately bump the
+relevant `*_SCHEMA_VERSION`, update the golden, and add a migration note here.
+
+**Honest scope (what this does and does NOT protect):** the golden tests stop the library
+from changing its serialized shape *silently* — a bump is forced. They do **not** yet protect
+the consumers' path: barb and sift read `EvalResult` via **attribute access** and build their
+own JSON; a field *rename* would still break them at attribute access regardless of the schema
+version. Full N6 closure requires those consumers to adopt `EvalResult.to_dict()` (optional
+follow-on). Until then, treat a structural change to the eval surface as MAJOR-equivalent and
+coordinate the bump across barb + sift.
+
+**Notes:** `to_dict()` emits **raw** floats (rounding is a display concern; consumers round
+themselves). `confusion` is intentionally omitted (it is just `tp/fp/tn/fn`, already top-level
+keys). `ndjson`/`csv` are row-streams with no envelope slot — they carry no per-row version;
+consumers pin the producer's `OUTPUT_SCHEMA_VERSION`.
 
 ## Publish (operator-gated — NOT automated yet)
 

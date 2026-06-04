@@ -23,6 +23,7 @@ def test_is_renderable():
 def test_json_golden():
     out = json.loads(render(Sample(), "json"))
     assert out == {
+        "schema_version": 1,
         "tier": "WARN",
         "rows": [{"ioc": "8.8.8.8", "verdict": "CLEAN"}, {"ioc": "evil.com", "verdict": "BAD"}],
     }

@@ -13,6 +13,10 @@ from .tiers import Severity
 
 VALID_FORMATS = ("rich", "console", "json", "ndjson", "csv")
 
+# render(fmt="json") envelope contract version (G10). Bump = structural break;
+# update the golden test + a migration note (docs/release-policy.md).
+OUTPUT_SCHEMA_VERSION = 1
+
 
 @runtime_checkable
 class Renderable(Protocol):
@@ -26,7 +30,7 @@ def render(obj: Renderable, fmt: str = "console", *, ascii_only: bool = False) -
         raise ValueError(f"unknown format {fmt!r}; valid: {', '.join(VALID_FORMATS)}")
     rows = list(obj.rows())
     if fmt == "json":
-        return json.dumps({"tier": obj.tier().label, "rows": rows}, indent=2)
+        return json.dumps({"schema_version": OUTPUT_SCHEMA_VERSION, "tier": obj.tier().label, "rows": rows}, indent=2)
     if fmt == "ndjson":
         return "\n".join(json.dumps(r) for r in rows)
     if fmt == "csv":

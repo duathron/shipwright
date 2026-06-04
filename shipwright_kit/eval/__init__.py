@@ -2,6 +2,6 @@
 
 from .corpus import Sample, load_corpus
 from .harness import EvalGateError, evaluate, gate
-from .metrics import EvalResult
+from .metrics import EVAL_SCHEMA_VERSION, EvalResult
 
-__all__ = ["Sample", "load_corpus", "EvalResult", "EvalGateError", "evaluate", "gate"]
+__all__ = ["Sample", "load_corpus", "EvalResult", "EVAL_SCHEMA_VERSION", "EvalGateError", "evaluate", "gate"]
