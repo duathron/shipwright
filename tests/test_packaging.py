@@ -19,5 +19,6 @@ def test_version_matches_package_metadata():
     # __version__ is a literal string kept in sync with the package version.
     # release-please bumps pyproject [project] version + __init__ together, so
     # assert consistency with the installed dist metadata rather than a frozen literal.
+    # Dist name is `shipwright-kit` (PyPI); import name is `shipwright`.
     assert isinstance(shipwright.__version__, str)
-    assert shipwright.__version__ == importlib.metadata.version("shipwright")
+    assert shipwright.__version__ == importlib.metadata.version("shipwright-kit")
