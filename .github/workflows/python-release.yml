@@ -51,7 +51,15 @@ jobs:
         uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b  # v8.1.0
       - name: Build distributions
         run: uv build
+      - name: Generate CycloneDX SBOM
+        run: uvx --from cyclonedx-bom cyclonedx-py environment --output-format JSON --output-file sbom.cdx.json
+      - name: Upload SBOM artifact
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4
+        with:
+          name: sbom-cyclonedx
+          path: sbom.cdx.json
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@cef221092ed1bacb1cc03d23a2d87d1d172e277b  # v1.14.0
         with:
           skip-existing: ${{ inputs.prerelease }}
+          attestations: true
