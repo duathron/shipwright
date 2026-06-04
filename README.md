@@ -2,6 +2,8 @@
 
 ![CI](https://github.com/duathron/shipwright/actions/workflows/ci.yml/badge.svg)
 ![CodeQL](https://github.com/duathron/shipwright/actions/workflows/codeql.yml/badge.svg)
+![Coverage](https://img.shields.io/badge/coverage-%E2%89%A590%25-brightgreen.svg)
+![Types](https://img.shields.io/badge/types-mypy-blue.svg)
 ![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)
 ![Python](https://img.shields.io/badge/python-3.11%2B-blue.svg)
 
