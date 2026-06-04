@@ -1,8 +1,13 @@
 # Security Policy
 
 ## Reporting a Vulnerability
-Email security reports to duathron@gmail.com. Do not open public issues for
-undisclosed vulnerabilities. Expect an acknowledgement within 7 days.
+Report security vulnerabilities **privately** via GitHub's
+[private vulnerability reporting](https://github.com/duathron/shipwright/security/advisories/new)
+(repo **Security** tab → **Report a vulnerability**). This keeps the report
+confidential between you and the maintainers.
+
+Do **not** open a public issue for an undisclosed vulnerability. Expect an
+acknowledgement within 7 days.
 
 ## Secret Hygiene
 This repo and every project it scaffolds run a `gitleaks` pre-commit and CI
