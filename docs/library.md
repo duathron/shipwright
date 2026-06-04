@@ -118,7 +118,7 @@ gate(r, min_precision=1.0, min_recall=0.9)   # no raise on the result above
 ## `shipwright_kit.security` — security pack
 
 Ships with the base install and registers via the `shipwright_kit.packs` entry point
-(it is **not** a `pip install shipwright[...]` extra).
+(it is **not** a `pip install shipwright-kit[...]` extra).
 
 ### `is_alert(tier, *, alert_at=NOTICE)`
 
