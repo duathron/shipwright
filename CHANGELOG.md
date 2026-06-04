@@ -3,6 +3,37 @@
 All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 and [Semantic Versioning](https://semver.org/).
 
+## [0.2.0](https://github.com/duathron/shipwright/compare/v0.1.1...v0.2.0) (2026-06-04)
+
+
+### ⚠ BREAKING CHANGES
+
+* rename import package shipwright -> shipwright_kit (kill PyPI namespace collision, N1)
+
+### Features
+
+* persona bundle-drift sync + pre-commit gate (G3) ([f94b1a9](https://github.com/duathron/shipwright/commit/f94b1a9d16fe716b31ec339f528a79c286ea629a))
+
+
+### Bug Fixes
+
+* build-requires setuptools&gt;=77 (SPDX license needs it) + gitignore .coverage ([0eee927](https://github.com/duathron/shipwright/commit/0eee927e6e4253bd45a5bf0f87b35577694bcd11))
+* reconcile version to 0.1.1 (match latest tag v0.1.1) ([dd57d91](https://github.com/duathron/shipwright/commit/dd57d91996a8c1db68d0cb770e5b2686848735b0))
+* SECURITY.md uses GitHub private vulnerability reporting, not personal email (G13) ([97c921a](https://github.com/duathron/shipwright/commit/97c921a958536a910eaacdcecf4eb4b0b4d6d6f2))
+* stale 'shipwright' refs post-rename (console error string, prose) ([0d4d15c](https://github.com/duathron/shipwright/commit/0d4d15ca5b6a6c6509e6952d83075f6b21e09c1d))
+* sync project-documentation-agent persona from vault SSOT ([ada16e1](https://github.com/duathron/shipwright/commit/ada16e1d6a3b3d5fa31a214297a68fde1f519819))
+
+
+### Documentation
+
+* library-first README + API reference (Phase C) ([d075753](https://github.com/duathron/shipwright/commit/d075753b0d76b50bc37e8cf9d13742ef11197184))
+* SemVer + release policy ([c6c9ff9](https://github.com/duathron/shipwright/commit/c6c9ff9c5e618904fd033e68d4d4b50562b5ca64))
+
+
+### Code Refactoring
+
+* rename import package shipwright -&gt; shipwright_kit (kill PyPI namespace collision, N1) ([bf50dab](https://github.com/duathron/shipwright/commit/bf50dab9e7f5723ee15fc22ef760dacd86401d4b))
+
 ## [Unreleased]
 ### Fixed
 - docs: removed an inaccurate TestPyPI claim; pin examples to `@main` until tagged releases exist
