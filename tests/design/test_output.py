@@ -4,8 +4,8 @@ import pytest
 from hypothesis import given
 from hypothesis import strategies as st
 
-from shipwright.design.output import VALID_FORMATS, Renderable, render
-from shipwright.design.tiers import Severity
+from shipwright_kit.design.output import VALID_FORMATS, Renderable, render
+from shipwright_kit.design.tiers import Severity
 
 
 class Sample:

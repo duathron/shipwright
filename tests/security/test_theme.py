@@ -2,9 +2,9 @@
 import enum
 import sys
 
-from shipwright.design.palette import Theme
-from shipwright.design.tiers import Severity
-from shipwright.security.theme import SECURITY_LABELS, SecurityTheme, label
+from shipwright_kit.design.palette import Theme
+from shipwright_kit.design.tiers import Severity
+from shipwright_kit.security.theme import SECURITY_LABELS, SecurityTheme, label
 
 
 def test_security_theme_is_complete_theme():
@@ -70,6 +70,6 @@ def test_security_import_is_light():
     for m in list(sys.modules):
         if m == "rich" or m.startswith("rich."):
             del sys.modules[m]
-    import shipwright.security.theme  # noqa: F401
+    import shipwright_kit.security.theme  # noqa: F401
 
     assert "rich" not in sys.modules

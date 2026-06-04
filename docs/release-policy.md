@@ -7,7 +7,7 @@ operator-gated step — see "Publish" below.)
 ## SemVer
 
 The library follows [Semantic Versioning](https://semver.org/) over its **public surface**:
-`shipwright.design`, `shipwright.eval`, `shipwright.security` (the names exported from each
+`shipwright_kit.design`, `shipwright_kit.eval`, `shipwright_kit.security` (the names exported from each
 module + their documented behaviour).
 
 | Bump | When | Conventional-commit |
@@ -29,7 +29,7 @@ Conventional Commits on `main`:
 2. release-please keeps an open **"chore(main): release X.Y.Z"** PR with the computed next
    version + generated CHANGELOG. Config: `release-please-config.json` (release-type `python`,
    with an `extra-files` updater that bumps `pyproject.toml [project] version` alongside
-   `shipwright/__init__.py`); state: `.release-please-manifest.json`.
+   `shipwright_kit/__init__.py`); state: `.release-please-manifest.json`.
 3. Merging that PR tags the release. (It does **not** publish — see below.)
 
 `type: docs/test/ci/build/chore` do not bump the version.
@@ -46,7 +46,7 @@ naming the replacement; remove only in a subsequent MAJOR (or, pre-1.0, a clearl
 
 ## Output / eval schema contract (forward note)
 
-The library's structured output (`shipwright.eval` metrics, `shipwright.design` output
+The library's structured output (`shipwright_kit.eval` metrics, `shipwright_kit.design` output
 contract) is consumed by separately-versioned tools (barb, sift). Once 2+ tools depend on a
 structural field, that surface needs its **own** schema version + migration story, independent
 of the package version — tracked as gap **G10**. Until then, structural changes to shared

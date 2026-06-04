@@ -5,8 +5,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from shipwright.eval.corpus import load_corpus
-from shipwright.eval.harness import EvalGateError, evaluate, gate
+from shipwright_kit.eval.corpus import load_corpus
+from shipwright_kit.eval.harness import EvalGateError, evaluate, gate
 
 _FIXTURE = Path(__file__).parent / "fixtures" / "sample.csv"
 

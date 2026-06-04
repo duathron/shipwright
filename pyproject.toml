@@ -38,17 +38,17 @@ Documentation = "https://github.com/duathron/shipwright/blob/main/docs/library.m
 Changelog = "https://github.com/duathron/shipwright/blob/main/CHANGELOG.md"
 Issues = "https://github.com/duathron/shipwright/issues"
 
-[project.entry-points."shipwright.packs"]
-security = "shipwright.security.theme:SecurityTheme"
+[project.entry-points."shipwright_kit.packs"]
+security = "shipwright_kit.security.theme:SecurityTheme"
 
 [dependency-groups]
 dev = ["pytest>=8.0", "pytest-cov>=5.0", "mypy>=1.10", "ruff>=0.8", "pre-commit>=4.0", "hypothesis>=6.0", "rich>=13.7", "copier>=9", "packaging"]
 
 [tool.setuptools.packages.find]
-include = ["shipwright*"]
+include = ["shipwright_kit*"]
 
 [tool.setuptools.package-data]
-shipwright = ["py.typed"]
+shipwright_kit = ["py.typed"]
 
 [tool.uv.workspace]
 members = ["projects/*"]
@@ -58,13 +58,13 @@ extend = "tooling/ruff-base.toml"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-addopts = "--cov=shipwright --cov-report=term-missing --cov-fail-under=90"
+addopts = "--cov=shipwright_kit --cov-report=term-missing --cov-fail-under=90"
 
 [tool.coverage.run]
-source = ["shipwright"]
+source = ["shipwright_kit"]
 branch = true
 
 [tool.mypy]
 python_version = "3.11"
-files = ["shipwright"]
+files = ["shipwright_kit"]
 ignore_missing_imports = true

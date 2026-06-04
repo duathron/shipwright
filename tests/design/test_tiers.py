@@ -1,7 +1,7 @@
 from hypothesis import given
 from hypothesis import strategies as st
 
-from shipwright.design.tiers import Severity, TierMappable
+from shipwright_kit.design.tiers import Severity, TierMappable
 
 
 def test_five_ordered_tiers():

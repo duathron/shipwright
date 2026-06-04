@@ -1,7 +1,7 @@
 from hypothesis import given
 from hypothesis import strategies as st
 
-from shipwright.eval.metrics import EvalResult
+from shipwright_kit.eval.metrics import EvalResult
 
 
 def test_golden_metrics():

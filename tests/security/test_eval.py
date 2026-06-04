@@ -1,5 +1,5 @@
-from shipwright.design.tiers import Severity
-from shipwright.security.eval import (
+from shipwright_kit.design.tiers import Severity
+from shipwright_kit.security.eval import (
     SECURITY_MIN_PRECISION,
     SECURITY_MIN_RECALL,
     is_alert,

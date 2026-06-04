@@ -46,7 +46,7 @@ def _shipwright_req(pyproject_text: str) -> Requirement:
     data = tomllib.loads(pyproject_text)
     for dep in data["project"]["dependencies"]:
         req = Requirement(dep)
-        if req.name == "shipwright":
+        if req.name == "shipwright-kit":
             return req
     raise AssertionError("no shipwright dependency in rendered pyproject")
 
@@ -55,12 +55,12 @@ def test_security_preset_installs_security_extra(tmp_path):
     proj = _render(tmp_path, "security")
     text = (proj / "pyproject.toml").read_text()
     req = _shipwright_req(text)
-    assert req.extras == {"security"}  # extra actually resolves (PEP 508)
+    assert req.extras == set()  # security pack ships with base (entry-point); no [security] extra exists
     assert "git+https://github.com/duathron/shipwright" in str(req.url)
     assert 'preset = "security"' in text
     banner = proj / "acme" / "banner.py"
     assert banner.exists()
-    assert "from shipwright.design.banner import make_banner" in banner.read_text()
+    assert "from shipwright_kit.design.banner import make_banner" in banner.read_text()
 
 
 def test_none_preset_core_only(tmp_path):

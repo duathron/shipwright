@@ -5,7 +5,7 @@ from __future__ import annotations
 
 from collections import Counter
 
-from shipwright.design.tiers import Severity
+from shipwright_kit.design.tiers import Severity
 
 SECURITY_MIN_PRECISION = 1.0
 SECURITY_MIN_RECALL = 0.70

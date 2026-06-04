@@ -1,5 +1,5 @@
 """Accessibility-aware console helpers. Rich is imported lazily inside
-`get_console` so `import shipwright` stays light."""
+`get_console` so `import shipwright_kit` stays light."""
 
 from __future__ import annotations
 

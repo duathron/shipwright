@@ -2,8 +2,8 @@ import pytest
 from hypothesis import given
 from hypothesis import strategies as st
 
-from shipwright.eval.corpus import Sample
-from shipwright.eval.harness import EvalGateError, evaluate, gate
+from shipwright_kit.eval.corpus import Sample
+from shipwright_kit.eval.harness import EvalGateError, evaluate, gate
 
 
 def _positive(label: str) -> bool:

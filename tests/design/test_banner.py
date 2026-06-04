@@ -1,7 +1,7 @@
 # tests/design/test_banner.py
 import sys
 
-from shipwright.design.banner import make_banner
+from shipwright_kit.design.banner import make_banner
 
 
 def test_plain_banner_has_name_version_tagline():
@@ -28,6 +28,6 @@ def test_import_is_light():
     for m in list(sys.modules):
         if m in ("pyfiglet", "rich") or m.startswith(("pyfiglet.", "rich.")):
             del sys.modules[m]
-    import shipwright.design.banner  # noqa: F401
+    import shipwright_kit.design.banner  # noqa: F401
 
     assert "pyfiglet" not in sys.modules and "rich" not in sys.modules

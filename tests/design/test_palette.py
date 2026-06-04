@@ -1,7 +1,7 @@
 import sys
 
-from shipwright.design.palette import ColorblindTheme, DefaultTheme, Theme
-from shipwright.design.tiers import Severity
+from shipwright_kit.design.palette import ColorblindTheme, DefaultTheme, Theme
+from shipwright_kit.design.tiers import Severity
 
 
 def test_themes_are_complete_and_stringy():
@@ -16,6 +16,6 @@ def test_palette_does_not_import_rich():
     for m in list(sys.modules):
         if m == "rich" or m.startswith("rich."):
             del sys.modules[m]
-    import shipwright.design.palette  # noqa: F401
+    import shipwright_kit.design.palette  # noqa: F401
 
     assert "rich" not in sys.modules

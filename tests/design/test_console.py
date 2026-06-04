@@ -1,7 +1,7 @@
 import io
 import sys
 
-from shipwright.design.console import get_console, supports_color, supports_unicode
+from shipwright_kit.design.console import get_console, supports_color, supports_unicode
 
 
 class _Pipe(io.StringIO):
@@ -40,7 +40,7 @@ def test_get_console_lazy_imports_rich():
     for m in list(sys.modules):
         if m == "rich" or m.startswith("rich."):
             del sys.modules[m]
-    import shipwright.design.console  # noqa: F401
+    import shipwright_kit.design.console  # noqa: F401
 
     assert "rich" not in sys.modules  # module import is light
     c = get_console(no_color=True)  # NOW rich loads

@@ -2,7 +2,7 @@ import json
 
 import pytest
 
-from shipwright.eval.corpus import Sample, load_corpus
+from shipwright_kit.eval.corpus import Sample, load_corpus
 
 
 def test_csv_with_comments_and_blanks(tmp_path):

@@ -5,7 +5,7 @@ worked examples). Stdlib-only."""
 
 from __future__ import annotations
 
-from shipwright.design.tiers import Severity
+from shipwright_kit.design.tiers import Severity
 
 SECURITY_LABELS: dict[Severity, str] = {
     Severity.OK: "CLEAN",

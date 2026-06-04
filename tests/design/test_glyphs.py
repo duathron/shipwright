@@ -1,5 +1,5 @@
-from shipwright.design.glyphs import glyph, tier_label
-from shipwright.design.tiers import Severity
+from shipwright_kit.design.glyphs import glyph, tier_label
+from shipwright_kit.design.tiers import Severity
 
 
 def test_every_tier_has_unicode_and_ascii():

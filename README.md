@@ -10,24 +10,24 @@
 Shipwright is two things that share one repo:
 
 - an installable, **import-light Python library** of shared dev-tooling runtime —
-  `shipwright.design` (severity tiers + accessible output), `shipwright.eval`
-  (detection-quality eval harness), `shipwright.security` (a security pack);
+  `shipwright_kit.design` (severity tiers + accessible output), `shipwright_kit.eval`
+  (detection-quality eval harness), `shipwright_kit.security` (a security pack);
 - an **AI-agent-operated development framework** — reusable CI/CD, a Copier
   scaffolder, quality gates, and bundled agent skills + personas — that **dogfoods**
   the library and the gates it hands to the projects built with it.
 
 The library is consumed today by two real tools: **barb** and **sift** both import
-`shipwright.eval` to run their detection-quality gates.
+`shipwright_kit.eval` to run their detection-quality gates.
 
 ## Install
 
 The library is **not on PyPI** — the bare name `shipwright` belongs to an unrelated
-project, so the published distribution will be **`shipwright-kit`** (the import name
-stays `shipwright`). For now, install from git:
+project, so the published distribution is **`shipwright-kit`** and the import name is
+**`shipwright_kit`**. For now, install from git:
 
 ```bash
 uv pip install "git+https://github.com/duathron/shipwright@main"
-# then: import shipwright
+# then: import shipwright_kit
 ```
 
 > [!NOTE]
@@ -36,7 +36,7 @@ uv pip install "git+https://github.com/duathron/shipwright@main"
 > shipwright` from PyPI — that is a different, unrelated package.
 
 The security pack needs no extra — it ships with the base install and registers
-through the `shipwright.packs` entry point.
+through the `shipwright_kit.packs` entry point.
 
 ## Library quickstart
 
@@ -44,7 +44,7 @@ through the `shipwright.packs` entry point.
 misses a floor (the exact pattern barb and sift use):
 
 ```python
-from shipwright.eval import Sample, evaluate, gate
+from shipwright_kit.eval import Sample, evaluate, gate
 
 corpus = [Sample("phish-login", "phishing"),
           Sample("example.com", "benign"),
@@ -64,14 +64,14 @@ gate(result, min_precision=1.0, min_recall=0.9)  # raises EvalGateError if below
 onto, with accessible (Unicode-or-ASCII) labels:
 
 ```python
-from shipwright.design import Severity, tier_label
+from shipwright_kit.design import Severity, tier_label
 
 Severity.OK, Severity.INFO, Severity.NOTICE, Severity.WARN, Severity.CRITICAL  # IntEnum 0..4
 print(tier_label(Severity.CRITICAL))  # ✗ CRITICAL
 print(tier_label(Severity.OK))        # ✓ OK
 ```
 
-`import shipwright` pulls in no `rich` or `pyfiglet` — the heavy deps load lazily only
+`import shipwright_kit` pulls in no `rich` or `pyfiglet` — the heavy deps load lazily only
 when you actually render. Full API: **[docs/library.md](docs/library.md)**.
 
 ## The framework
@@ -83,7 +83,7 @@ development:
 
 ```
 shipwright/
-├─ shipwright/              # the importable library (design / eval / security)
+├─ shipwright_kit/          # the importable library (design / eval / security)
 ├─ tooling/ruff-base.toml   # single source of truth for lint rules
 ├─ templates/               # Copier scaffolder (python-cli) + release config
 ├─ skills/ · personas/      # the agent operating layer (scaffold, onboard, review …)
