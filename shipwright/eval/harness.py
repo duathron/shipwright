@@ -17,17 +17,19 @@ def evaluate(
     predict_fn: Callable[[str], str],
     corpus: list[Sample],
     *,
-    positive: Callable[[str], bool],
+    positive_pred: Callable[[str], bool],
+    positive_expected: Callable[[str], bool] | None = None,
 ) -> EvalResult:
+    binarize_expected = positive_expected or positive_pred  # default = same-space (Phase B)
     tp = fp = tn = fn = errors = 0
     for sample in corpus:
         try:
             pred = predict_fn(sample.input)
-        except Exception:  # count-and-skip
+        except Exception:  # count-and-skip, surfaced via errors
             errors += 1
             continue
-        exp = positive(sample.label)
-        got = positive(pred)
+        exp = binarize_expected(sample.label)
+        got = positive_pred(pred)
         if exp and got:
             tp += 1
         elif got and not exp:
