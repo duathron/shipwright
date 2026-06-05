@@ -3,6 +3,19 @@
 All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 and [Semantic Versioning](https://semver.org/).
 
+## [0.4.0](https://github.com/duathron/shipwright/compare/v0.3.0...v0.4.0) (2026-06-05)
+
+
+### Features
+
+* **security:** add shared prompt-injection detector ([a87bd78](https://github.com/duathron/shipwright/commit/a87bd78e82a0c1bbec782991f8e6c2f03584aac4))
+* **security:** export injection detector + import-light guard ([79a2c91](https://github.com/duathron/shipwright/commit/79a2c9193f0a9a1cddbea4b3a248806d1663bf98))
+
+
+### Documentation
+
+* **plan:** G12 shared injection defense implementation plan ([29aadbb](https://github.com/duathron/shipwright/commit/29aadbb6110f9739cd205f965246c52a8f94fd62))
+
 ## [0.3.0](https://github.com/duathron/shipwright/compare/v0.2.0...v0.3.0) (2026-06-04)
 
 
