@@ -2,31 +2,20 @@
 
 from __future__ import annotations
 
-import typer
 from rich.console import Console
+from shipwright_kit.cli import build_typer
 
 from {{ package_name }} import __version__
 from {{ package_name }}.detect import classify as classify_input
 
-app = typer.Typer(
-    name="{{ cli_command }}",
-    help="{{ description }}",
-    add_completion=False,
-    no_args_is_help=True,
-)
+app = build_typer("{{ cli_command }}", "{{ description }}", version=__version__)
 console = Console()
 
 
 @app.command()
-def classify(value: str = typer.Argument(..., help="Input to classify")):
+def classify(value: str) -> None:
     """Classify an input string (example parse boundary)."""
     console.print(classify_input(value))
-
-
-@app.command()
-def version():
-    """Print the version."""
-    console.print(__version__)
 
 
 def main() -> None:
