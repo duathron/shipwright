@@ -22,3 +22,7 @@ sync-personas:
 # Fail if bundled personas drift from the vault (no-op without the vault).
 check-bundle:
     sh scripts/check-bundle-drift.sh
+
+# Render the template + run the generated project's QA gate (scaffold e2e, G11/G8).
+selftest preset="none":
+    bash scripts/template-selftest.sh {{ preset }}
