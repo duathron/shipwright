@@ -3,6 +3,20 @@
 All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 and [Semantic Versioning](https://semver.org/).
 
+## [0.5.0](https://github.com/duathron/shipwright/compare/v0.4.0...v0.5.0) (2026-06-05)
+
+
+### Features
+
+* **cli:** Typer app factory (build_typer) ([65ab0e2](https://github.com/duathron/shipwright/commit/65ab0e2cf1fdcb61fec45c077d03941d4a87dbe0))
+* **config:** import-light shared config mechanism ([d58d46e](https://github.com/duathron/shipwright/commit/d58d46ec08d1049ae3ef3da99dcb3b85c6e2c0bb))
+* **template:** G11 self-test + fix 2 latent template defects ([ce52ded](https://github.com/duathron/shipwright/commit/ce52ded6a4da91d5cc12b4c70d8cc3bcbe64a6ed))
+
+
+### Documentation
+
+* **plan:** G4 CLI/config DRY implementation plan ([749f4d2](https://github.com/duathron/shipwright/commit/749f4d26c7c39fdc54e9ecddf79786aba8d62fcd))
+
 ## [0.4.0](https://github.com/duathron/shipwright/compare/v0.3.0...v0.4.0) (2026-06-05)
 
 
