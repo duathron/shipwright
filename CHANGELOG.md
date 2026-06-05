@@ -3,6 +3,13 @@
 All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 and [Semantic Versioning](https://semver.org/).
 
+## [0.6.0](https://github.com/duathron/shipwright/compare/v0.5.0...v0.6.0) (2026-06-05)
+
+
+### Features
+
+* **template:** scaffold config.py + use build_typer (G4) ([5c00503](https://github.com/duathron/shipwright/commit/5c005032b5398defe217ad4fb934f3dc634915fe))
+
 ## [0.5.0](https://github.com/duathron/shipwright/compare/v0.4.0...v0.5.0) (2026-06-05)
 
 
