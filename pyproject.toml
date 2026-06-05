@@ -1,6 +1,6 @@
 [build-system]
 # setuptools>=77 is required for the SPDX string-form `license = "MIT"` (PEP 639).
-requires = ["setuptools>=77.0", "wheel"]
+requires = ["setuptools>=82.0.1", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
