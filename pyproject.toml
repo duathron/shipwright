@@ -37,6 +37,7 @@ Repository = "https://github.com/duathron/shipwright"
 Documentation = "https://github.com/duathron/shipwright/blob/main/docs/library.md"
 Changelog = "https://github.com/duathron/shipwright/blob/main/CHANGELOG.md"
 Issues = "https://github.com/duathron/shipwright/issues"
+LinkedIn = "https://www.linkedin.com/in/christian-huhn-76a407114"
 
 [project.entry-points."shipwright_kit.packs"]
 security = "shipwright_kit.security.theme:SecurityTheme"

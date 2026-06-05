@@ -130,6 +130,13 @@ Report vulnerabilities privately via GitHub's
 [private vulnerability reporting](https://github.com/duathron/shipwright/security/advisories/new)
 (repo **Security** tab → **Report a vulnerability**). See [SECURITY.md](SECURITY.md).
 
+## Author
+
+**Christian Huhn** — building security tooling for SOC/DFIR workflows.
+
+- GitHub: [@duathron](https://github.com/duathron)
+- LinkedIn: [Christian Huhn](https://www.linkedin.com/in/christian-huhn-76a407114)
+
 ## License
 
 [MIT](LICENSE) © 2026 Christian Huhn
