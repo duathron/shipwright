@@ -3,6 +3,18 @@
 All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 and [Semantic Versioning](https://semver.org/).
 
+## [0.7.0](https://github.com/duathron/shipwright/compare/v0.6.0...v0.7.0) (2026-06-07)
+
+
+### Features
+
+* **ci:** add version-consistency guard to reusable python-ci ([f0a743e](https://github.com/duathron/shipwright/commit/f0a743e54a31fb38542da96a4537a5cfac4a9481))
+
+
+### Documentation
+
+* **meta:** attribution — add LinkedIn link + README Author section ([fe8edfc](https://github.com/duathron/shipwright/commit/fe8edfcc731a5c829ceddddecd903bb2f52cc654))
+
 ## [0.6.0](https://github.com/duathron/shipwright/compare/v0.5.0...v0.6.0) (2026-06-05)
 
 
