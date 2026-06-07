@@ -25,6 +25,31 @@ jobs:
         working-directory: ${{ inputs.working-directory }}
     steps:
       - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10  # v6
+      - name: Version consistency
+        # Guard against pyproject [project].version drifting from a package
+        # __version__ literal (e.g. a release that bumps pyproject.toml but not
+        # __init__.py). Generic across the fleet; no-op for repos with a dynamic
+        # or absent version, or with no __version__ literal. Runs on the bare
+        # checkout (system python3 only) before any dependency install.
+        run: |
+          python3 - <<'PYEOF'
+          import tomllib, pathlib, re, sys
+          proj = tomllib.load(open("pyproject.toml", "rb")).get("project", {})
+          ver = proj.get("version")
+          if not ver:
+              print("No static [project].version (dynamic or absent) — skipping.")
+              sys.exit(0)
+          bad = []
+          for p in pathlib.Path(".").rglob("__init__.py"):
+              if any(x in p.parts for x in (".venv", "build", "dist", "tests")):
+                  continue
+              m = re.search(r'^__version__\s*=\s*["\']([^"\']+)["\']', p.read_text(), re.M)
+              if m and m.group(1) != ver:
+                  bad.append(f"{p}: __version__={m.group(1)} != pyproject {ver}")
+          if bad:
+              print("Version drift:\n  " + "\n  ".join(bad)); sys.exit(1)
+          print(f"Version consistent: {ver}")
+          PYEOF
       - name: Install uv
         uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b  # v8.1.0
       - name: Set up Python
