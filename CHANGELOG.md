@@ -3,6 +3,14 @@
 All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 and [Semantic Versioning](https://semver.org/).
 
+## [0.8.0](https://github.com/duathron/shipwright/compare/v0.7.0...v0.8.0) (2026-06-12)
+
+
+### Features
+
+* **eval:** verify_corpus honesty helper + template PyPI pin (W2/W4) ([bad0996](https://github.com/duathron/shipwright/commit/bad0996f7899dac06d11a5f27f62508cf403b900))
+* **personas:** standing MeetUp advisors + hardened meetup skill ([8f398c8](https://github.com/duathron/shipwright/commit/8f398c8fa32215d88e17c706ef506d32c675d1d9))
+
 ## [0.7.0](https://github.com/duathron/shipwright/compare/v0.6.0...v0.7.0) (2026-06-07)
 
 
