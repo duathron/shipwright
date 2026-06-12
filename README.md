@@ -21,19 +21,18 @@ The library is consumed today by two real tools: **barb** and **sift** both impo
 
 ## Install
 
-The library is **not on PyPI** — the bare name `shipwright` belongs to an unrelated
-project, so the published distribution is **`shipwright-kit`** and the import name is
-**`shipwright_kit`**. For now, install from git:
+The bare name `shipwright` belongs to an unrelated project on PyPI, so the
+published distribution is **`shipwright-kit`** and the import name is
+**`shipwright_kit`**.
 
 ```bash
-uv pip install "git+https://github.com/duathron/shipwright@main"
+uv pip install "shipwright-kit>=0.7,<0.8"
 # then: import shipwright_kit
 ```
 
 > [!NOTE]
-> Pin a release tag instead of `@main` for reproducible builds once a tagged
-> release of the `shipwright-kit` distribution is cut. Do **not** `pip install
-> shipwright` from PyPI — that is a different, unrelated package.
+> Do **not** `pip install shipwright` from PyPI — that is a different, unrelated
+> package. The correct dist name is `shipwright-kit`.
 
 The security pack needs no extra — it ships with the base install and registers
 through the `shipwright_kit.packs` entry point.

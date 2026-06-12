@@ -56,7 +56,10 @@ def test_security_preset_installs_security_extra(tmp_path):
     text = (proj / "pyproject.toml").read_text()
     req = _shipwright_req(text)
     assert req.extras == set()  # security pack ships with base (entry-point); no [security] extra exists
-    assert "git+https://github.com/duathron/shipwright" in str(req.url)
+    # W2: PyPI range pin (>=0.7,<0.8) — url is None, specifier encodes the range
+    assert req.url is None
+    assert ">=0.7" in str(req.specifier)
+    assert "<0.8" in str(req.specifier)
     assert 'preset = "security"' in text
     banner = proj / "acme" / "banner.py"
     assert banner.exists()
@@ -68,5 +71,8 @@ def test_none_preset_core_only(tmp_path):
     text = (proj / "pyproject.toml").read_text()
     req = _shipwright_req(text)
     assert req.extras == set()  # no security extra
-    assert "git+https://github.com/duathron/shipwright" in str(req.url)
+    # W2: PyPI range pin (>=0.7,<0.8) — url is None, specifier encodes the range
+    assert req.url is None
+    assert ">=0.7" in str(req.specifier)
+    assert "<0.8" in str(req.specifier)
     assert 'preset = "none"' in text

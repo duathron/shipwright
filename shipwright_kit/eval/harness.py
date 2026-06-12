@@ -4,6 +4,7 @@ predict-time exception (faithful to barb — a bad row must not abort the run)."
 from __future__ import annotations
 
 from collections.abc import Callable
+from dataclasses import dataclass
 
 from .corpus import Sample
 from .metrics import EvalResult
@@ -11,6 +12,84 @@ from .metrics import EvalResult
 
 class EvalGateError(AssertionError):
     """Raised when an eval result is below the required thresholds."""
+
+
+@dataclass(frozen=True)
+class CorpusDisagreement:
+    """A single row where the predictor's output disagrees with the human label."""
+
+    value: str  # the sample input
+    label: str  # the human-assigned label
+    predicted: str  # what the predictor returned
+
+
+@dataclass(frozen=True)
+class CorpusVerifyReport:
+    """Result of :func:`verify_corpus`. Stdlib-only, no rich/pyfiglet import."""
+
+    disagreements: list[CorpusDisagreement]
+    total: int
+    disagreement_count: int
+
+    @property
+    def clean(self) -> bool:
+        """True when every row agrees — safe to proceed to floor-setting."""
+        return self.disagreement_count == 0
+
+    def summary(self) -> str:
+        """Single-line human-readable summary, suitable for stderr."""
+        if self.clean:
+            return f"corpus-verify: OK — {self.total} rows, 0 disagreements"
+        return f"corpus-verify: FAIL — {self.disagreement_count}/{self.total} rows disagree (label vs prediction)"
+
+
+def verify_corpus(
+    corpus: list[Sample],
+    predictor: Callable[[str], str],
+    *,
+    eq: Callable[[str, str], bool] | None = None,
+) -> CorpusVerifyReport:
+    """Run *predictor* over every labeled row and report label-vs-prediction disagreements.
+
+    Use this **before** setting a precision/recall floor to catch mislabeled or
+    dishonest corpus rows — a predictor that is believed correct is compared
+    directly to the human label; rows that differ are flagged.
+
+    Parameters
+    ----------
+    corpus:
+        List of :class:`~shipwright_kit.eval.Sample` objects (input + label pairs).
+    predictor:
+        Callable that maps an input string to a prediction string.  Must be the
+        same callable you intend to gate — usually the production classifier.
+    eq:
+        Optional equality function ``(label, predicted) -> bool``.  Defaults to
+        plain string equality (``label == predicted``).  Supply a custom function
+        when the label space differs from the prediction space (e.g. case-folding,
+        synonyms, or a mapping dict).
+
+    Returns
+    -------
+    CorpusVerifyReport
+        Structured report with the full list of disagreements plus a summary count.
+        Predictor exceptions on a row are treated as a disagreement (predicted value
+        is set to ``"<error>"``).
+    """
+    _eq: Callable[[str, str], bool] = eq if eq is not None else (lambda a, b: a == b)
+    disagreements: list[CorpusDisagreement] = []
+    for sample in corpus:
+        try:
+            pred = predictor(sample.input)
+        except Exception:
+            disagreements.append(CorpusDisagreement(sample.input, sample.label, "<error>"))
+            continue
+        if not _eq(sample.label, pred):
+            disagreements.append(CorpusDisagreement(sample.input, sample.label, pred))
+    return CorpusVerifyReport(
+        disagreements=disagreements,
+        total=len(corpus),
+        disagreement_count=len(disagreements),
+    )
 
 
 def evaluate(

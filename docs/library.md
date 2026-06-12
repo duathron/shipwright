@@ -3,7 +3,7 @@
 The library is import-light: `import shipwright_kit` pulls in no `rich` or
 `pyfiglet`; heavy deps load lazily only when you render. Three public modules.
 
-Install: `uv pip install "git+https://github.com/duathron/shipwright@main"` →
+Install: `uv pip install "shipwright-kit>=0.7,<0.8"` →
 `import shipwright_kit`. (Distribution name is `shipwright-kit`; see the README.)
 
 ---

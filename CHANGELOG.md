@@ -88,11 +88,26 @@ and [Semantic Versioning](https://semver.org/).
 * rename import package shipwright -&gt; shipwright_kit (kill PyPI namespace collision, N1) ([bf50dab](https://github.com/duathron/shipwright/commit/bf50dab9e7f5723ee15fc22ef760dacd86401d4b))
 
 ## [Unreleased]
+### Added
+- **eval (W4):** `shipwright_kit.eval.verify_corpus(corpus, predictor, *, eq=None) -> CorpusVerifyReport`
+  — runs the predictor over every labeled row and reports label-vs-prediction disagreements
+  as a structured `CorpusVerifyReport` (list of `CorpusDisagreement` + summary count).
+  Catches mislabeled / dishonest corpus rows before a precision/recall floor is set.
+  Predictor exceptions are counted as disagreements (`predicted="<error>"`). Stdlib-only.
+  Exported from `shipwright_kit.eval`; will bump `shipwright-kit` minor (→ 0.8.0).
+- **template (W2):** scaffolded `pyproject.toml` now pins `shipwright-kit>=0.7,<0.8`
+  (PyPI range) instead of `@ git+https://github.com/duathron/shipwright@main`.
+  Closes G14 — the git-`@main` pin was from the pre-PyPI era; a range pin is
+  reproducible and tracks the current minor correctly. Verified by G11 self-test
+  (both `none` and `security` presets, `uv sync` resolves `shipwright-kit==0.7.0` from PyPI).
+
 ### Fixed
 - docs: removed an inaccurate TestPyPI claim; pin examples to `@main` until tagged releases exist
 - python-release: `config-file`/`manifest-file` are now overridable workflow inputs (were hardcoded)
+- docs: `README.md` and `docs/library.md` updated to reflect `shipwright-kit` PyPI availability
+  (no longer "not on PyPI"; install snippet changed from git-URL to PyPI range).
 
-### Added
+### Added (earlier)
 - Skills layer: scaffold, propagate, onboard, quality-gate, dogfood, review, meetup, release (`skills/`).
 - Framework foundation: uv workspace, single-source ruff config, just runner,
   pre-commit (+ gitleaks), dogfood CI, governance files.
