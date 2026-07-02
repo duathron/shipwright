@@ -75,13 +75,15 @@ jobs:
         run: uvx zizmor@1.26.1 --offline "$GITHUB_WORKSPACE/.github/workflows/"
       - name: Workflow lint (actionlint)
         # Syntax/semantics linter (not security-focused — zizmor covers that).
-        # reporter:local + fail_level:error: prints findings to the step log and
-        # fails the step on actionlint errors, without needing PR-check/write
-        # permissions (no GitHub API calls, so the reusable's default read-only
-        # token is enough).
+        # reporter:local + filter_mode:nofilter + fail_level:error: reports ALL
+        # findings (no PR diff needed — nofilter is required on push events, where
+        # reporter:local's default diff-filter has no diff and errors with "diff
+        # command is empty") and fails the step on actionlint errors, without
+        # needing PR-check/write permissions (read-only token is enough).
         uses: reviewdog/action-actionlint@6fb7acc99f4a1008869fa8a0f09cfca740837d9d # v1.72.0
         with:
           reporter: local
+          filter_mode: nofilter
           fail_level: error
       - name: Sync dev environment
         run: uv sync --dev
