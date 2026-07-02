@@ -3,6 +3,13 @@
 All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 and [Semantic Versioning](https://semver.org/).
 
+## [0.8.1](https://github.com/duathron/shipwright/compare/v0.8.0...v0.8.1) (2026-07-02)
+
+
+### Bug Fixes
+
+* harden CI/release workflows against aikido findings ([28e9061](https://github.com/duathron/shipwright/commit/28e9061b377a63cac6c4bde90c0c844dc86accc1))
+
 ## [0.8.0](https://github.com/duathron/shipwright/compare/v0.7.0...v0.8.0) (2026-06-12)
 
 
