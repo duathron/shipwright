@@ -4,8 +4,16 @@ Owns the *mechanism* only — "build request -> call SDK/HTTP -> return raw
 text" for Anthropic, OpenAI, and a local Ollama server. Mirrors
 ``shipwright_kit.config``'s shape: shared mechanism, per-tool schema. The
 per-tool bits (prompt content, response JSON-parse/validate/fence-strip,
-template fallback, the ``SummarizerProtocol``/``ExplainerProtocol``, and every
-try/except around these calls) stay in each tool.
+template fallback, the ``SummarizerProtocol``/``ExplainerProtocol``, client
+construction/import-guarding, and every try/except around these calls) stay
+in each tool.
+
+The SDK-backed providers (``anthropic_complete``, ``openai_complete``) take
+an INJECTED ``client``: the caller constructs its own SDK client (with its
+own install-hint/``ImportError`` handling in the tool's ``__init__``) and
+passes it in. This module never imports ``anthropic``/``openai`` and never
+constructs a client itself — the client is duck-typed, so import-lightness
+here is structural (no SDK import exists to lazily defer), not merely lazy.
 
 These are DUMB TRANSPORTS. They do NOT redact, sanitize, or scan ``system``/
 ``user`` text in any way — whatever the caller passes is sent to the provider
@@ -16,11 +24,9 @@ Exception-transparent by design: none of the three public functions contains
 a ``try``/``except``. SDK, HTTP, and JSON/KeyError failures propagate to the
 caller unchanged so each tool can keep its own existing error handling
 (re-raise as ``RuntimeError``, swallow-and-fall-back-to-template, etc.) without
-this module making that policy choice for them. The only exceptions raised
-*by* this module itself are ``ValueError`` for an unrecognized ``extract``/
-``system_mode`` literal, and ``ImportError`` (translated to a caller-supplied,
-tool-specific install hint) when the ``anthropic``/``openai`` packages are not
-installed — both are input-validation guards, not error-swallowing.
+this module making that policy choice for them. The only exception raised
+*by* this module itself is ``ValueError`` for an unrecognized ``extract``/
+``system_mode`` literal — an input-validation guard, not error-swallowing.
 
 No ``max_tokens``/``temperature`` default is baked in here (the config.py
 lesson: no schema in the mechanism) — callers supply every value.
@@ -39,48 +45,27 @@ __all__ = ["anthropic_complete", "ollama_generate", "openai_complete"]
 
 
 # ---------------------------------------------------------------------------
-# Lazy SDK imports — kept out of the 3 public functions so those stay
-# try/except-free; `import shipwright_kit.llm` itself never touches
-# anthropic/openai and stays stdlib-only.
-# ---------------------------------------------------------------------------
-
-
-def _import_anthropic(install_hint: str) -> Any:
-    try:
-        import anthropic  # noqa: PLC0415
-    except ImportError as exc:
-        raise ImportError(install_hint) from exc
-    return anthropic
-
-
-def _import_openai(install_hint: str) -> Any:
-    try:
-        import openai  # noqa: PLC0415
-    except ImportError as exc:
-        raise ImportError(install_hint) from exc
-    return openai
-
-
-# ---------------------------------------------------------------------------
 # Anthropic
 # ---------------------------------------------------------------------------
 
 
 def anthropic_complete(
     *,
-    api_key: str | None,
+    client: Any,
     model: str,
     max_tokens: int,
     system: str,
     user: str,
-    install_hint: str,
     temperature: float | None = None,
     extract: str = "first_text_block",
 ) -> str:
-    """Call the Anthropic Messages API and return the extracted text.
+    """Call the Anthropic Messages API on a caller-supplied client and return
+    the extracted text.
 
-    Literal move of ``anthropic.Anthropic(api_key=...).messages.create(...)``
-    plus response-text extraction. ``extract`` reconciles the two known
+    ``client`` is a pre-built Anthropic SDK client (e.g.
+    ``anthropic.Anthropic(api_key=...)``) constructed and owned by the
+    caller; this function only calls ``client.messages.create(...)`` and
+    extracts text from the response. ``extract`` reconciles the two known
     current extraction behaviors:
 
     - ``"first_text_block"`` (sift's current behavior): scan
@@ -92,17 +77,10 @@ def anthropic_complete(
       behavior is preserved on purpose (named follow-up F2 owns fixing it).
 
     Raises:
-        ImportError: the ``anthropic`` package is not installed; the message
-            is exactly ``install_hint`` (each tool supplies its own text so
-            this function never bakes in tool-specific wording).
         ValueError: ``extract`` is not one of the two known modes.
-        Exception: any exception raised by ``anthropic.Anthropic(...)`` or
-            ``.messages.create(...)`` propagates unchanged — no try/except
-            here.
+        Exception: any exception raised by ``client.messages.create(...)``
+            propagates unchanged — no try/except here.
     """
-    anthropic = _import_anthropic(install_hint)
-    client = anthropic.Anthropic(api_key=api_key)
-
     kwargs: dict[str, Any] = {
         "model": model,
         "max_tokens": max_tokens,
@@ -131,31 +109,28 @@ def anthropic_complete(
 
 def openai_complete(
     *,
-    api_key: str | None,
+    client: Any,
     model: str,
     max_tokens: int,
     system: str,
     user: str,
-    install_hint: str,
     temperature: float | None = None,
 ) -> str:
-    """Call the OpenAI Chat Completions API and return the response text.
+    """Call the OpenAI Chat Completions API on a caller-supplied client and
+    return the response text.
 
-    Literal move of ``openai.OpenAI(api_key=...).chat.completions.create(...)``
-    plus response-text extraction (``response.choices[0].message.content or
-    ""`` — a ``None`` content, e.g. a tool-call-only response, degrades to
-    ``""`` rather than raising, matching both sift and barb today).
+    ``client`` is a pre-built OpenAI SDK client (e.g.
+    ``openai.OpenAI(api_key=...)``) constructed and owned by the caller; this
+    function only calls ``client.chat.completions.create(...)`` and extracts
+    text from the response (``response.choices[0].message.content or ""`` —
+    a ``None`` content, e.g. a tool-call-only response, degrades to ``""``
+    rather than raising, matching both sift and barb today).
 
     Raises:
-        ImportError: the ``openai`` package is not installed; the message is
-            exactly ``install_hint``.
-        Exception: any exception raised by ``openai.OpenAI(...)`` or
-            ``.chat.completions.create(...)`` propagates unchanged — no
-            try/except here.
+        Exception: any exception raised by
+            ``client.chat.completions.create(...)`` propagates unchanged —
+            no try/except here.
     """
-    openai = _import_openai(install_hint)
-    client = openai.OpenAI(api_key=api_key)
-
     kwargs: dict[str, Any] = {
         "model": model,
         "max_tokens": max_tokens,

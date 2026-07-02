@@ -4,8 +4,10 @@ Pins the exact request shapes both sift's characterization tests
 (``sift/tests/test_llm_provider_requests.py``) and barb's
 (``barb/tests/test_explain_llm_providers.py``) expect, so that when each tool
 is retrofitted onto this module in a later phase, those suites pass
-byte-identical. All external clients/HTTP are mocked — no live network, no
-real API keys.
+byte-identical. All clients are plain mocks passed in directly (client
+INJECTION, not internal construction) — no live network, no real API keys,
+and no faking of ``sys.modules['anthropic']``/``['openai']`` since this
+module no longer imports either SDK.
 """
 
 from __future__ import annotations
@@ -14,7 +16,6 @@ import json
 import subprocess
 import sys
 import urllib.error
-from types import SimpleNamespace
 from unittest.mock import MagicMock
 
 import pytest
@@ -26,31 +27,25 @@ from shipwright_kit.llm import anthropic_complete, ollama_generate, openai_compl
 # ---------------------------------------------------------------------------
 
 
-def _install_fake_anthropic(monkeypatch, response_text: str = "ok") -> tuple[MagicMock, MagicMock]:
-    """Install a fake ``anthropic`` module in sys.modules so the function's
-    lazy ``import anthropic`` picks it up, and return the mock client class
-    so tests can assert on ``Anthropic(...)`` / ``.messages.create(...)``."""
+def _make_anthropic_client(response_text: str = "ok") -> MagicMock:
+    """Build a mock Anthropic SDK client (what a tool's ``__init__`` would
+    construct and inject as ``self._client``)."""
     mock_client = MagicMock()
     mock_response = MagicMock()
     mock_response.content = [MagicMock(text=response_text)]
     mock_client.messages.create.return_value = mock_response
-
-    mock_anthropic_cls = MagicMock(return_value=mock_client)
-    fake_module = SimpleNamespace(Anthropic=mock_anthropic_cls)
-    monkeypatch.setitem(sys.modules, "anthropic", fake_module)
-    return mock_client, mock_anthropic_cls
+    return mock_client
 
 
 class TestAnthropicRequestConstruction:
-    def test_sends_model_max_tokens_system_and_user_message(self, monkeypatch):
-        mock_client, _ = _install_fake_anthropic(monkeypatch)
+    def test_sends_model_max_tokens_system_and_user_message(self):
+        mock_client = _make_anthropic_client()
         anthropic_complete(
-            api_key="fake-key",
+            client=mock_client,
             model="claude-sonnet-4-6",
             max_tokens=2048,
             system="sys prompt",
             user="user prompt",
-            install_hint="pip install x[llm]",
         )
         kwargs = mock_client.messages.create.call_args.kwargs
         assert kwargs["model"] == "claude-sonnet-4-6"
@@ -58,54 +53,29 @@ class TestAnthropicRequestConstruction:
         assert kwargs["system"] == "sys prompt"
         assert kwargs["messages"] == [{"role": "user", "content": "user prompt"}]
 
-    def test_temperature_omitted_when_none(self, monkeypatch):
-        mock_client, _ = _install_fake_anthropic(monkeypatch)
-        anthropic_complete(
-            api_key="fake-key",
-            model="m",
-            max_tokens=10,
-            system="s",
-            user="u",
-            install_hint="hint",
-        )
+    def test_temperature_omitted_when_none(self):
+        mock_client = _make_anthropic_client()
+        anthropic_complete(client=mock_client, model="m", max_tokens=10, system="s", user="u")
         assert "temperature" not in mock_client.messages.create.call_args.kwargs
 
-    def test_temperature_included_when_given(self, monkeypatch):
-        mock_client, _ = _install_fake_anthropic(monkeypatch)
-        anthropic_complete(
-            api_key="fake-key",
-            model="m",
-            max_tokens=10,
-            system="s",
-            user="u",
-            install_hint="hint",
-            temperature=0.42,
-        )
+    def test_temperature_included_when_given(self):
+        mock_client = _make_anthropic_client()
+        anthropic_complete(client=mock_client, model="m", max_tokens=10, system="s", user="u", temperature=0.42)
         assert mock_client.messages.create.call_args.kwargs["temperature"] == 0.42
 
-    def test_no_response_format_or_tools_param_sent(self, monkeypatch):
-        mock_client, _ = _install_fake_anthropic(monkeypatch)
-        anthropic_complete(api_key="k", model="m", max_tokens=10, system="s", user="u", install_hint="h")
+    def test_no_response_format_or_tools_param_sent(self):
+        mock_client = _make_anthropic_client()
+        anthropic_complete(client=mock_client, model="m", max_tokens=10, system="s", user="u")
         kwargs = mock_client.messages.create.call_args.kwargs
         assert "response_format" not in kwargs
         assert "tools" not in kwargs
 
-    def test_client_constructed_with_given_api_key(self, monkeypatch):
-        _, mock_anthropic_cls = _install_fake_anthropic(monkeypatch)
-        anthropic_complete(api_key="fake-key", model="m", max_tokens=10, system="s", user="u", install_hint="h")
-        mock_anthropic_cls.assert_called_once_with(api_key="fake-key")
-
-    def test_import_error_uses_caller_supplied_install_hint(self, monkeypatch):
-        monkeypatch.setitem(sys.modules, "anthropic", None)  # forces ImportError on `import anthropic`
-        with pytest.raises(ImportError, match="pip install sift-triage\\[llm\\]"):
-            anthropic_complete(
-                api_key="k",
-                model="m",
-                max_tokens=10,
-                system="s",
-                user="u",
-                install_hint="pip install sift-triage[llm]",
-            )
+    def test_uses_the_injected_client_not_a_new_one(self):
+        """No internal client construction: the exact object passed in is the
+        one whose .messages.create(...) gets called."""
+        mock_client = _make_anthropic_client()
+        anthropic_complete(client=mock_client, model="m", max_tokens=10, system="s", user="u")
+        mock_client.messages.create.assert_called_once()
 
 
 # ---------------------------------------------------------------------------
@@ -114,64 +84,58 @@ class TestAnthropicRequestConstruction:
 
 
 class TestAnthropicExtraction:
-    def test_first_text_block_skips_leading_non_text_block(self, monkeypatch):
-        mock_client, _ = _install_fake_anthropic(monkeypatch)
+    def test_first_text_block_skips_leading_non_text_block(self):
+        mock_client = _make_anthropic_client()
 
         class NoTextBlock:
             type = "tool_use"
 
         mock_client.messages.create.return_value.content = [NoTextBlock(), MagicMock(text="the answer")]
         result = anthropic_complete(
-            api_key="k", model="m", max_tokens=10, system="s", user="u", install_hint="h", extract="first_text_block"
+            client=mock_client, model="m", max_tokens=10, system="s", user="u", extract="first_text_block"
         )
         assert result == "the answer"
 
-    def test_first_text_block_returns_empty_string_when_no_text_block(self, monkeypatch):
-        mock_client, _ = _install_fake_anthropic(monkeypatch)
+    def test_first_text_block_returns_empty_string_when_no_text_block(self):
+        mock_client = _make_anthropic_client()
 
         class NoTextBlock:
             type = "tool_use"
 
         mock_client.messages.create.return_value.content = [NoTextBlock()]
         result = anthropic_complete(
-            api_key="k", model="m", max_tokens=10, system="s", user="u", install_hint="h", extract="first_text_block"
+            client=mock_client, model="m", max_tokens=10, system="s", user="u", extract="first_text_block"
         )
         assert result == ""
 
-    def test_index0_returns_content_0_text(self, monkeypatch):
-        mock_client, _ = _install_fake_anthropic(monkeypatch, response_text="direct")
+    def test_index0_returns_content_0_text(self):
+        mock_client = _make_anthropic_client(response_text="direct")
         result = anthropic_complete(
-            api_key="k", model="m", max_tokens=10, system="s", user="u", install_hint="h", extract="index0"
+            client=mock_client, model="m", max_tokens=10, system="s", user="u", extract="index0"
         )
         assert result == "direct"
 
-    def test_index0_raises_index_error_on_empty_content_uncaught(self, monkeypatch):
+    def test_index0_raises_index_error_on_empty_content_uncaught(self):
         """Preserves barb's current crash-on-empty; NOT fixed here (follow-up F2)."""
-        mock_client, _ = _install_fake_anthropic(monkeypatch)
+        mock_client = _make_anthropic_client()
         mock_client.messages.create.return_value.content = []
         with pytest.raises(IndexError):
-            anthropic_complete(
-                api_key="k", model="m", max_tokens=10, system="s", user="u", install_hint="h", extract="index0"
-            )
+            anthropic_complete(client=mock_client, model="m", max_tokens=10, system="s", user="u", extract="index0")
 
-    def test_index0_raises_attribute_error_when_first_block_has_no_text(self, monkeypatch):
-        mock_client, _ = _install_fake_anthropic(monkeypatch)
+    def test_index0_raises_attribute_error_when_first_block_has_no_text(self):
+        mock_client = _make_anthropic_client()
 
         class NoTextBlock:
             type = "tool_use"
 
         mock_client.messages.create.return_value.content = [NoTextBlock()]
         with pytest.raises(AttributeError):
-            anthropic_complete(
-                api_key="k", model="m", max_tokens=10, system="s", user="u", install_hint="h", extract="index0"
-            )
+            anthropic_complete(client=mock_client, model="m", max_tokens=10, system="s", user="u", extract="index0")
 
-    def test_unknown_extract_mode_raises_value_error(self, monkeypatch):
-        _install_fake_anthropic(monkeypatch)
+    def test_unknown_extract_mode_raises_value_error(self):
+        mock_client = _make_anthropic_client()
         with pytest.raises(ValueError, match="unknown extract mode"):
-            anthropic_complete(
-                api_key="k", model="m", max_tokens=10, system="s", user="u", install_hint="h", extract="bogus"
-            )
+            anthropic_complete(client=mock_client, model="m", max_tokens=10, system="s", user="u", extract="bogus")
 
 
 # ---------------------------------------------------------------------------
@@ -180,19 +144,24 @@ class TestAnthropicExtraction:
 
 
 class TestAnthropicExceptionTransparency:
-    def test_sdk_error_from_create_propagates_uncaught(self, monkeypatch):
-        mock_client, _ = _install_fake_anthropic(monkeypatch)
+    def test_sdk_error_from_create_propagates_uncaught(self):
+        mock_client = _make_anthropic_client()
         mock_client.messages.create.side_effect = RuntimeError("boom from SDK")
         with pytest.raises(RuntimeError, match="boom from SDK"):
-            anthropic_complete(api_key="k", model="m", max_tokens=10, system="s", user="u", install_hint="h")
+            anthropic_complete(client=mock_client, model="m", max_tokens=10, system="s", user="u")
 
-    def test_api_key_never_appears_in_propagated_exception(self, monkeypatch):
-        mock_client, _ = _install_fake_anthropic(monkeypatch)
-        mock_client.messages.create.side_effect = RuntimeError("rate limited")
-        secret = "FAKE-anthropic-key-value-do-not-leak"  # not a real key shape (avoids secret-scanner FP)
+    def test_client_raised_exception_propagates_without_wrapping(self):
+        """llm.py no longer takes an api_key (client construction/credentials
+        are entirely the caller's concern), so there is nothing for this
+        function to leak into an exception message. What's left to pin: a
+        client-raised exception propagates completely unmodified — same
+        type, same message, no wrapping/added context from this module."""
+        mock_client = _make_anthropic_client()
+        original = RuntimeError("rate limited")
+        mock_client.messages.create.side_effect = original
         with pytest.raises(RuntimeError) as excinfo:
-            anthropic_complete(api_key=secret, model="m", max_tokens=10, system="s", user="u", install_hint="h")
-        assert secret not in str(excinfo.value)
+            anthropic_complete(client=mock_client, model="m", max_tokens=10, system="s", user="u")
+        assert excinfo.value is original
 
 
 # ---------------------------------------------------------------------------
@@ -200,28 +169,23 @@ class TestAnthropicExceptionTransparency:
 # ---------------------------------------------------------------------------
 
 
-def _install_fake_openai(monkeypatch, content: str | None = "ok") -> tuple[MagicMock, MagicMock]:
+def _make_openai_client(content: str | None = "ok") -> MagicMock:
     mock_client = MagicMock()
     mock_response = MagicMock()
     mock_response.choices = [MagicMock(message=MagicMock(content=content))]
     mock_client.chat.completions.create.return_value = mock_response
-
-    mock_openai_cls = MagicMock(return_value=mock_client)
-    fake_module = SimpleNamespace(OpenAI=mock_openai_cls)
-    monkeypatch.setitem(sys.modules, "openai", fake_module)
-    return mock_client, mock_openai_cls
+    return mock_client
 
 
 class TestOpenAIRequestConstruction:
-    def test_sends_model_max_tokens_and_two_role_messages(self, monkeypatch):
-        mock_client, _ = _install_fake_openai(monkeypatch)
+    def test_sends_model_max_tokens_and_two_role_messages(self):
+        mock_client = _make_openai_client()
         openai_complete(
-            api_key="k",
+            client=mock_client,
             model="gpt-4o",
             max_tokens=1024,
             system="sys prompt",
             user="user prompt",
-            install_hint="h",
         )
         kwargs = mock_client.chat.completions.create.call_args.kwargs
         assert kwargs["model"] == "gpt-4o"
@@ -231,35 +195,28 @@ class TestOpenAIRequestConstruction:
             {"role": "user", "content": "user prompt"},
         ]
 
-    def test_temperature_omitted_when_none(self, monkeypatch):
-        mock_client, _ = _install_fake_openai(monkeypatch)
-        openai_complete(api_key="k", model="m", max_tokens=10, system="s", user="u", install_hint="h")
+    def test_temperature_omitted_when_none(self):
+        mock_client = _make_openai_client()
+        openai_complete(client=mock_client, model="m", max_tokens=10, system="s", user="u")
         assert "temperature" not in mock_client.chat.completions.create.call_args.kwargs
 
-    def test_temperature_included_when_given(self, monkeypatch):
-        mock_client, _ = _install_fake_openai(monkeypatch)
-        openai_complete(api_key="k", model="m", max_tokens=10, system="s", user="u", install_hint="h", temperature=0.1)
+    def test_temperature_included_when_given(self):
+        mock_client = _make_openai_client()
+        openai_complete(client=mock_client, model="m", max_tokens=10, system="s", user="u", temperature=0.1)
         assert mock_client.chat.completions.create.call_args.kwargs["temperature"] == 0.1
 
-    def test_no_response_format_or_tools_param_sent(self, monkeypatch):
-        mock_client, _ = _install_fake_openai(monkeypatch)
-        openai_complete(api_key="k", model="m", max_tokens=10, system="s", user="u", install_hint="h")
+    def test_no_response_format_or_tools_param_sent(self):
+        mock_client = _make_openai_client()
+        openai_complete(client=mock_client, model="m", max_tokens=10, system="s", user="u")
         kwargs = mock_client.chat.completions.create.call_args.kwargs
         assert "response_format" not in kwargs
         assert "tools" not in kwargs
         assert "functions" not in kwargs
 
-    def test_client_constructed_with_given_api_key(self, monkeypatch):
-        _, mock_openai_cls = _install_fake_openai(monkeypatch)
-        openai_complete(api_key="fake-key", model="m", max_tokens=10, system="s", user="u", install_hint="h")
-        mock_openai_cls.assert_called_once_with(api_key="fake-key")
-
-    def test_import_error_uses_caller_supplied_install_hint(self, monkeypatch):
-        monkeypatch.setitem(sys.modules, "openai", None)
-        with pytest.raises(ImportError, match="pip install barb-phish\\[llm\\]"):
-            openai_complete(
-                api_key="k", model="m", max_tokens=10, system="s", user="u", install_hint="pip install barb-phish[llm]"
-            )
+    def test_uses_the_injected_client_not_a_new_one(self):
+        mock_client = _make_openai_client()
+        openai_complete(client=mock_client, model="m", max_tokens=10, system="s", user="u")
+        mock_client.chat.completions.create.assert_called_once()
 
 
 # ---------------------------------------------------------------------------
@@ -268,14 +225,14 @@ class TestOpenAIRequestConstruction:
 
 
 class TestOpenAIExtraction:
-    def test_returns_choices_0_message_content(self, monkeypatch):
-        _install_fake_openai(monkeypatch, content="direct answer")
-        result = openai_complete(api_key="k", model="m", max_tokens=10, system="s", user="u", install_hint="h")
+    def test_returns_choices_0_message_content(self):
+        mock_client = _make_openai_client(content="direct answer")
+        result = openai_complete(client=mock_client, model="m", max_tokens=10, system="s", user="u")
         assert result == "direct answer"
 
-    def test_none_content_degrades_to_empty_string(self, monkeypatch):
-        _install_fake_openai(monkeypatch, content=None)
-        result = openai_complete(api_key="k", model="m", max_tokens=10, system="s", user="u", install_hint="h")
+    def test_none_content_degrades_to_empty_string(self):
+        mock_client = _make_openai_client(content=None)
+        result = openai_complete(client=mock_client, model="m", max_tokens=10, system="s", user="u")
         assert result == ""
 
 
@@ -285,19 +242,22 @@ class TestOpenAIExtraction:
 
 
 class TestOpenAIExceptionTransparency:
-    def test_sdk_error_from_create_propagates_uncaught(self, monkeypatch):
-        mock_client, _ = _install_fake_openai(monkeypatch)
+    def test_sdk_error_from_create_propagates_uncaught(self):
+        mock_client = _make_openai_client()
         mock_client.chat.completions.create.side_effect = RuntimeError("boom from SDK")
         with pytest.raises(RuntimeError, match="boom from SDK"):
-            openai_complete(api_key="k", model="m", max_tokens=10, system="s", user="u", install_hint="h")
+            openai_complete(client=mock_client, model="m", max_tokens=10, system="s", user="u")
 
-    def test_api_key_never_appears_in_propagated_exception(self, monkeypatch):
-        mock_client, _ = _install_fake_openai(monkeypatch)
-        mock_client.chat.completions.create.side_effect = RuntimeError("rate limited")
-        secret = "FAKE-openai-key-value-do-not-leak"  # not a real key shape (avoids secret-scanner FP)
+    def test_client_raised_exception_propagates_without_wrapping(self):
+        """Mirrors the Anthropic case: no api_key in this API anymore, so the
+        pinned contract is that a client-raised exception passes through
+        this module completely unmodified."""
+        mock_client = _make_openai_client()
+        original = RuntimeError("rate limited")
+        mock_client.chat.completions.create.side_effect = original
         with pytest.raises(RuntimeError) as excinfo:
-            openai_complete(api_key=secret, model="m", max_tokens=10, system="s", user="u", install_hint="h")
-        assert secret not in str(excinfo.value)
+            openai_complete(client=mock_client, model="m", max_tokens=10, system="s", user="u")
+        assert excinfo.value is original
 
 
 # ---------------------------------------------------------------------------
@@ -486,29 +446,27 @@ class TestDumbTransportNoRedaction:
         assert "DUMB TRANSPORT" in doc
         assert "do NOT redact" in doc or "does NOT redact" in doc
 
-    def test_anthropic_passes_sensitive_text_through_unchanged(self, monkeypatch):
-        mock_client, _ = _install_fake_anthropic(monkeypatch)
+    def test_anthropic_passes_sensitive_text_through_unchanged(self):
+        mock_client = _make_anthropic_client()
         anthropic_complete(
-            api_key="k",
+            client=mock_client,
             model="m",
             max_tokens=10,
             system=self.SENSITIVE_TEXT,
             user=self.SENSITIVE_TEXT,
-            install_hint="h",
         )
         kwargs = mock_client.messages.create.call_args.kwargs
         assert kwargs["system"] == self.SENSITIVE_TEXT
         assert kwargs["messages"][0]["content"] == self.SENSITIVE_TEXT
 
-    def test_openai_passes_sensitive_text_through_unchanged(self, monkeypatch):
-        mock_client, _ = _install_fake_openai(monkeypatch)
+    def test_openai_passes_sensitive_text_through_unchanged(self):
+        mock_client = _make_openai_client()
         openai_complete(
-            api_key="k",
+            client=mock_client,
             model="m",
             max_tokens=10,
             system=self.SENSITIVE_TEXT,
             user=self.SENSITIVE_TEXT,
-            install_hint="h",
         )
         messages = mock_client.chat.completions.create.call_args.kwargs["messages"]
         assert messages[0]["content"] == self.SENSITIVE_TEXT
@@ -534,6 +492,10 @@ class TestDumbTransportNoRedaction:
 
 
 def test_import_light_no_anthropic_or_openai_loaded():
+    """Stronger than a merely-lazy-import claim: llm.py contains no reference
+    to anthropic/openai anywhere (no lazy-import helpers either, since the
+    SDK providers now take an injected, duck-typed client) — so the SDKs are
+    never loaded into sys.modules just by importing this module."""
     code = (
         "import importlib, sys; "
         "importlib.import_module('shipwright_kit.llm'); "
