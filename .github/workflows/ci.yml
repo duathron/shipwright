@@ -3,6 +3,11 @@ on:
   push:
   pull_request:
 
+# Least-privilege default: none of these jobs write to the repo, comment on
+# PRs, or touch other scopes — read-only checkout is all they need.
+permissions:
+  contents: read
+
 jobs:
   ci:
     # Dogfood: Shipwright's CI runs the framework's own reusable workflow.

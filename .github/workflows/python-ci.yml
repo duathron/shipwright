@@ -58,6 +58,28 @@ jobs:
         env:
           PYTHON_VERSION: ${{ inputs.python-version }}
         run: uv python install "$PYTHON_VERSION"
+      - name: Workflow lint (zizmor)
+        # Security-focused GHA linter — catches the aikido-found bug classes
+        # (template-injection ${{ }} in run:, missing persist-credentials:false,
+        # broad permissions, unpinned actions) BEFORE merge. This step runs
+        # inside the reusable workflow, so it lints the CALLING repo's checked-
+        # out .github/workflows/ — every consumer (sift/vex/barb) that calls this
+        # reusable gets the gate for free (fleet propagation). Version pinned so
+        # a zizmor release with new/changed rules can't silently break fleet CI;
+        # bump deliberately after a local `uvx zizmor@<new>` run stays green.
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: uvx zizmor@1.26.1 "$GITHUB_WORKSPACE/.github/workflows/"
+      - name: Workflow lint (actionlint)
+        # Syntax/semantics linter (not security-focused — zizmor covers that).
+        # reporter:local + fail_level:error: prints findings to the step log and
+        # fails the step on actionlint errors, without needing PR-check/write
+        # permissions (no GitHub API calls, so the reusable's default read-only
+        # token is enough).
+        uses: reviewdog/action-actionlint@6fb7acc99f4a1008869fa8a0f09cfca740837d9d # v1.72.0
+        with:
+          reporter: local
+          fail_level: error
       - name: Sync dev environment
         run: uv sync --dev
       - name: Lint

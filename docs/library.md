@@ -142,3 +142,26 @@ domain's eval floors (no false positives; recall ≥ 0.70) — feed them to `gat
 
 `shipwright_kit.security.theme` maps `Severity` onto security labels (CLEAN → LOW →
 SUSPICIOUS → HIGH → MALICIOUS) and registers a `SecurityTheme` for rendering.
+
+### SSRF guard — `assert_safe_url` / `is_safe_url`
+
+`shipwright_kit.security.ssrf` blocks outbound requests to non-public
+addresses (RFC1918, link-local incl. the cloud-metadata IP, loopback, IPv6
+unique-local/link-local). Stdlib-only (`ipaddress`, `urllib.parse`, `socket`).
+
+```python
+from shipwright_kit.security.ssrf import UnsafeURLError, assert_safe_url
+
+assert_safe_url("https://api.example.com")             # ok, returns None
+assert_safe_url("http://localhost:11434", allow_loopback=True)  # ok
+assert_safe_url("http://169.254.169.254/latest/meta-data")      # raises UnsafeURLError
+```
+
+`resolve=True` additionally resolves the hostname and rejects it if any
+resolved address is blocked — a best-effort check only (TOCTOU/DNS-rebinding
+caveat, see docstring).
+
+**Status: pre-committed guardrail for W3, not yet wired.** This is the SSRF
+primitive planned for when the LLM-provider layer makes ollama's `base_url`
+configurable; it is not called from any tool yet (wiring it in today would
+be dead code — `base_url` is still hardcoded). W3 does the wiring.
