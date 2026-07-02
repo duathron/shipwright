@@ -3,6 +3,13 @@
 All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 and [Semantic Versioning](https://semver.org/).
 
+## [0.10.0](https://github.com/duathron/shipwright/compare/v0.9.0...v0.10.0) (2026-07-02)
+
+
+### Features
+
+* shipwright_kit.llm shared provider transports (W3 cut-1) ([2d5f306](https://github.com/duathron/shipwright/commit/2d5f306ebb5848c008428c19373dacbb73e2f11b))
+
 ## [0.9.0](https://github.com/duathron/shipwright/compare/v0.8.1...v0.9.0) (2026-07-02)
 
 
