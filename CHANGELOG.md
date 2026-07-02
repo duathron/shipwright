@@ -3,6 +3,13 @@
 All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 and [Semantic Versioning](https://semver.org/).
 
+## [0.9.0](https://github.com/duathron/shipwright/compare/v0.8.1...v0.9.0) (2026-07-02)
+
+
+### Features
+
+* SSRF guard primitive + shift-left workflow-lint gate ([4ce0ad5](https://github.com/duathron/shipwright/commit/4ce0ad54dae8c50a6e203a570d13ea2349302ad3))
+
 ## [0.8.1](https://github.com/duathron/shipwright/compare/v0.8.0...v0.8.1) (2026-07-02)
 
 
