@@ -67,9 +67,12 @@ jobs:
         # reusable gets the gate for free (fleet propagation). Version pinned so
         # a zizmor release with new/changed rules can't silently break fleet CI;
         # bump deliberately after a local `uvx zizmor@<new>` run stays green.
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: uvx zizmor@1.26.1 "$GITHUB_WORKSPACE/.github/workflows/"
+        # --offline: enforce the static security audits only (every aikido class is
+        # offline). Online audits are excluded on purpose: ref-version-mismatch is
+        # comment-hygiene (the SHA pin is authoritative) and known-vulnerable-actions
+        # is covered by dependabot. Offline also keeps CI deterministic + identical
+        # to local `uvx zizmor` runs (which have no token).
+        run: uvx zizmor@1.26.1 --offline "$GITHUB_WORKSPACE/.github/workflows/"
       - name: Workflow lint (actionlint)
         # Syntax/semantics linter (not security-focused — zizmor covers that).
         # reporter:local + fail_level:error: prints findings to the step log and
