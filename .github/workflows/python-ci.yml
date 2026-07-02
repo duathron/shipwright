@@ -25,6 +25,8 @@ jobs:
         working-directory: ${{ inputs.working-directory }}
     steps:
       - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10  # v6
+        with:
+          persist-credentials: false
       - name: Version consistency
         # Guard against pyproject [project].version drifting from a package
         # __version__ literal (e.g. a release that bumps pyproject.toml but not
@@ -53,7 +55,9 @@ jobs:
       - name: Install uv
         uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b  # v8.1.0
       - name: Set up Python
-        run: uv python install ${{ inputs.python-version }}
+        env:
+          PYTHON_VERSION: ${{ inputs.python-version }}
+        run: uv python install "$PYTHON_VERSION"
       - name: Sync dev environment
         run: uv sync --dev
       - name: Lint
