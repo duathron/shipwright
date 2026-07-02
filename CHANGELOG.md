@@ -3,6 +3,13 @@
 All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 and [Semantic Versioning](https://semver.org/).
 
+## [0.10.1](https://github.com/duathron/shipwright/compare/v0.10.0...v0.10.1) (2026-07-02)
+
+
+### Bug Fixes
+
+* shipwright_kit.llm SDK providers take an injected client (not api_key) ([6119ec1](https://github.com/duathron/shipwright/commit/6119ec112effa059b95298e334bf8c0d5c5883e5))
+
 ## [0.10.0](https://github.com/duathron/shipwright/compare/v0.9.0...v0.10.0) (2026-07-02)
 
 
