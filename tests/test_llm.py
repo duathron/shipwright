@@ -369,6 +369,50 @@ class TestOllamaRequestConstruction:
                 base_url="http://localhost:11434", model="m", system="s", user="u", timeout=None, system_mode="bogus"
             )
 
+    def test_options_included_verbatim_when_given(self, monkeypatch):
+        """vex's shape: a per-request options dict is passed through as-is."""
+        captured = _install_fake_urlopen(monkeypatch, {"response": "ok"})
+        opts = {"num_predict": 500, "temperature": 0.3}
+        ollama_generate(
+            base_url="http://localhost:11434",
+            model="m",
+            system="s",
+            user="u",
+            timeout=None,
+            system_mode="fold",
+            options=opts,
+        )
+        payload = captured["payload"]
+        assert payload["options"] == opts
+
+    def test_options_omitted_key_when_none(self, monkeypatch):
+        """Regression guard: sift/barb never pass options, so with the default
+        (None) the payload must have no "options" key at all — byte-identical
+        to before this parameter existed."""
+        captured = _install_fake_urlopen(monkeypatch, {"response": "ok"})
+        ollama_generate(
+            base_url="http://localhost:11434", model="m", system="s", user="u", timeout=None, system_mode="fold"
+        )
+        assert "options" not in captured["payload"]
+
+    def test_options_combined_with_field_system_mode(self, monkeypatch):
+        """vex's actual shape: system_mode="field" + options together produce
+        exactly {model, prompt, stream, options, system}."""
+        captured = _install_fake_urlopen(monkeypatch, {"response": "ok"})
+        opts = {"num_predict": 200, "temperature": 0.7}
+        ollama_generate(
+            base_url="http://localhost:11434",
+            model="m",
+            system="SYS",
+            user="USER",
+            timeout=None,
+            system_mode="field",
+            options=opts,
+        )
+        payload = captured["payload"]
+        assert set(payload.keys()) == {"model", "system", "prompt", "stream", "options"}
+        assert payload["options"] == opts
+
 
 # ---------------------------------------------------------------------------
 # Ollama — response extraction

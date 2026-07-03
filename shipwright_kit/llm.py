@@ -159,6 +159,7 @@ def ollama_generate(
     user: str,
     timeout: float | None,
     system_mode: str,
+    options: dict[str, Any] | None = None,
 ) -> str:
     """POST to a local Ollama ``/api/generate`` endpoint and return the raw
     ``response`` field, unstripped.
@@ -174,6 +175,14 @@ def ollama_generate(
     - ``"field"`` (barb's current behavior): ``system`` sent as its own
       top-level payload key, ``prompt`` is ``user`` alone. Payload keys:
       ``{"model", "system", "prompt", "stream"}``.
+
+    ``options`` is an ADDITIVE, OPTIONAL passthrough for Ollama's
+    per-request generation options (vex's current behavior, e.g.
+    ``{"num_predict": ..., "temperature": ...}``). When given (not
+    ``None``), it is included verbatim as the ``"options"`` payload key.
+    When omitted (the default, ``None``), no ``"options"`` key is added and
+    the payload is byte-identical to today — sift and barb, which never
+    pass this argument, are unaffected.
 
     Note: barb's caller additionally does ``.strip()`` on the returned text
     today; that is NOT done here (sift's raw extraction never strips) — each
@@ -196,6 +205,9 @@ def ollama_generate(
         payload = {"model": model, "system": system, "prompt": user, "stream": False}
     else:
         raise ValueError(f"unknown system_mode: {system_mode!r}")
+
+    if options is not None:
+        payload["options"] = options
 
     data = json.dumps(payload).encode("utf-8")
     req = urllib.request.Request(
