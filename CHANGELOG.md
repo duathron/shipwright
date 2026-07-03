@@ -3,6 +3,13 @@
 All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 and [Semantic Versioning](https://semver.org/).
 
+## [0.11.0](https://github.com/duathron/shipwright/compare/v0.10.1...v0.11.0) (2026-07-03)
+
+
+### Features
+
+* ollama_generate accepts an optional per-request options dict ([925913d](https://github.com/duathron/shipwright/commit/925913d5e229041d07a5bce412924fd4d87e1416))
+
 ## [0.10.1](https://github.com/duathron/shipwright/compare/v0.10.0...v0.10.1) (2026-07-02)
 
 
