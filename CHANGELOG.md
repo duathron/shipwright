@@ -3,6 +3,13 @@
 All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 and [Semantic Versioning](https://semver.org/).
 
+## [0.12.0](https://github.com/duathron/shipwright/compare/v0.11.0...v0.12.0) (2026-07-04)
+
+
+### Features
+
+* add security.safe_render for terminal-safe LLM output ([#32](https://github.com/duathron/shipwright/issues/32)) ([6c17664](https://github.com/duathron/shipwright/commit/6c17664c115e9d61348c889085e3f4b6b04cd8e4))
+
 ## [0.11.0](https://github.com/duathron/shipwright/compare/v0.10.1...v0.11.0) (2026-07-03)
 
 
