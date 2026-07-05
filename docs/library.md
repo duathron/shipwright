@@ -165,3 +165,43 @@ caveat, see docstring).
 primitive planned for when the LLM-provider layer makes ollama's `base_url`
 configurable; it is not called from any tool yet (wiring it in today would
 be dead code — `base_url` is still hardcoded). W3 does the wiring.
+
+### Render-sink guard — `safe_render`
+
+`shipwright_kit.security.render` neutralizes LLM-sourced text before it hits a
+terminal. It's the render-sink half of the fleet's output hardening (OWASP
+LLM05, Improper Output Handling); the prompt-input half is `security.injection`
+above. It always strips ANSI/OSC escape sequences and C0/C1 control characters
+(TAB and newline are kept), so a model can't move the cursor, recolor output,
+or emit an OSC-8 hyperlink. Two modes, chosen with `escape_markup`:
+
+```python
+def safe_render(text: str, *, escape_markup: bool = True) -> str: ...
+```
+
+- `escape_markup=True` (default): also escapes Rich console markup so
+  `[red]`/`[link=...]` renders as literal text. Use this at a Rich-markup sink
+  (`console.print` / `Panel`).
+- `escape_markup=False`: control/ANSI strip only, no markup escaping. Use this
+  at a plain `print()` sink, where there's no Rich to interpret `[...]` and
+  escaping it would just add stray backslashes.
+
+Apply it to the LLM-sourced field only. Routing trusted, app-generated markup
+(e.g. a severity-color span) through it would escape markup that should render.
+sift, barb, and vex all call it at their LLM-summary/explanation render sinks.
+
+```python
+from shipwright_kit.security.render import safe_render, SAFE_RENDER_VERSION
+
+safe_render("[red]x[/red]\x1b[31m")
+# '\\[red]x\\[/red]'
+safe_render("[red]x\x1b[31m", escape_markup=False)
+# '[red]x'
+SAFE_RENDER_VERSION
+# 1
+```
+
+`SAFE_RENDER_VERSION` bumps whenever the neutralization rule set changes (a
+rule added, removed, or retuned). That's a version-drift signal for consumers,
+the same convention as `EVAL_SCHEMA_VERSION`. Import-light: stdlib `re` only,
+no `rich`.

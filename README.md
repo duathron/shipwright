@@ -34,8 +34,13 @@ uv pip install "shipwright-kit>=0.7,<0.8"
 > Do **not** `pip install shipwright` from PyPI — that is a different, unrelated
 > package. The correct dist name is `shipwright-kit`.
 
-The security pack needs no extra — it ships with the base install and registers
-through the `shipwright_kit.packs` entry point.
+The security pack needs no extra. It ships with the base install and registers
+through the `shipwright_kit.packs` entry point. It bundles prompt-injection
+detection (`security.injection`), an SSRF host guard (`security.ssrf`), and a
+render-sink guard (`security.safe_render`) that strips ANSI/OSC escapes and
+control characters from LLM-sourced text and, by default, escapes Rich console
+markup so a model can't spoof colored terminal output (OWASP LLM05). All three
+are import-light: stdlib only, no `rich`.
 
 ## Library quickstart
 
