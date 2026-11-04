@@ -74,7 +74,11 @@ consumers pin the producer's `OUTPUT_SCHEMA_VERSION`.
 ## Publish (operator-gated — NOT automated yet)
 
 Publishing to PyPI is deliberately **not** wired into `main`. The build/sign/publish pipeline
-(`.github/workflows/python-release.yml`: `uv build` → CycloneDX SBOM → PEP 740 attestations →
-OIDC Trusted-Publisher upload, behind the `pypi` GitHub Environment) exists and is
+(`.github/workflows/python-release.yml`: a `build` job without OIDC — `uv build` → locked
+runtime-requirements export → CycloneDX SBOM — then a `publish` job that only downloads the
+built `dist` artifact for PEP 740 attestations and the OIDC Trusted-Publisher upload, behind
+the `pypi` GitHub Environment; a committed, current `uv.lock` is required) exists and is
 SHA-pinned, but is invoked only in a separate, explicit publish step that also requires a
-PyPI Trusted Publisher to be configured. "Build ≠ publish."
+PyPI Trusted Publisher to be configured. "Build ≠ publish." The `build` job runs before the
+`pypi` environment approval, so the reviewer approves an artifact that is already built and
+immutable.

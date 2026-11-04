@@ -41,6 +41,8 @@ Manual rungs are **GitHub Environments with required reviewers**. The release wo
           pull-requests: write
           id-token: write
 
+The release runs as two jobs: `build` (`contents: read`, no OIDC) builds `dist` and the CycloneDX SBOM from the locked runtime dependencies, then `publish` (`id-token: write`, in the Environment) only downloads `dist` and uploads it to PyPI. The project must commit a current `uv.lock` (the SBOM is exported with `uv export --locked`; a stale lock fails the build before anything is published).
+
 The project must include `release-please-config.json` and `.release-please-manifest.json` at its root (Shipwright ships canonical templates under `templates/release/`).
 
 ## One-time project setup (done by the scaffolder / onboarding)
