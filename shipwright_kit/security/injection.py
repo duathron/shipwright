@@ -87,9 +87,8 @@ _CONFUSABLES = str.maketrans(
 
 
 # Categories dropped from the matching copy: combining/enclosing marks, format,
-# surrogate, private-use and control characters (TAB/LF/CR are kept).
+# surrogate, private-use and control characters (whitespace is mapped to a space first).
 _DROP_CATEGORIES = frozenset({"Mn", "Me", "Cf", "Cs", "Co", "Cc"})
-_KEEP_WHITESPACE = frozenset("\t\n\r")
 # Invisible "filler" characters that are not in a dropped category (U+1D159 is
 # category So, so a category rule cannot catch it). NFKD (not NFKC) is used so a
 # combining mark on a letter is separated and dropped; as a consequence an
@@ -98,15 +97,31 @@ _KEEP_WHITESPACE = frozenset("\t\n\r")
 _FILLERS = frozenset("\u115f\u1160\u3164\uffa0\u2800\u17b4\u17b5\ufffc\u0640\U0001d159")
 
 
-def _fold(value: str) -> str:
-    """NFKD, drop invisible/combining/control characters and fillers, fold confusables."""
+def _fold(value: str, invisible_as: str = "") -> str:
+    """NFKD, normalize whitespace, neutralize invisibles, fold confusables.
+
+    Every ``isspace()`` character (any category, e.g. VT, FF, NEL, FS-US) becomes
+    a plain space so ``\\s`` patterns keep matching. Remaining invisible/combining/
+    control characters and fillers are replaced by ``invisible_as`` ("" drops
+    them, catching ``ig<X>nore``; " " separates, catching ``output<X>instead``).
+    """
     text = unicodedata.normalize("NFKD", value)
-    text = "".join(
-        c
-        for c in text
-        if c in _KEEP_WHITESPACE or (c not in _FILLERS and unicodedata.category(c) not in _DROP_CATEGORIES)
-    )
-    return text.translate(_CONFUSABLES)
+    out: list[str] = []
+    for c in text:
+        if c.isspace():
+            out.append(" ")
+        elif c in _FILLERS or unicodedata.category(c) in _DROP_CATEGORIES:
+            out.append(invisible_as)
+        else:
+            out.append(c)
+    return "".join(out).translate(_CONFUSABLES)
+
+
+def _fold_variants(value: str) -> list[str]:
+    """The dropped variant, plus the spaced variant when it differs."""
+    dropped = _fold(value)
+    spaced = _fold(value, " ")
+    return [dropped] if spaced == dropped else [dropped, spaced]
 
 
 class SeverityLevel(str, Enum):
@@ -239,45 +254,55 @@ class PromptInjectionDetector:
         if not isinstance(value, str):
             return []
 
-        normalized = _fold(value)
-
-        if self._whitelist:
-            for p in self._whitelist:
-                normalized = p.sub(lambda m: " " if m.end() > m.start() else "", normalized)
-            if not normalized.strip():
-                return []
-
         findings: list[InjectionFinding] = []
+        seen: set[str] = set()
         preview = self._truncate(value)
 
-        def add(pattern_type: str, severity: SeverityLevel, redaction: str) -> None:
-            findings.append(
-                InjectionFinding(
-                    field=field_name,
-                    pattern_type=pattern_type,
-                    severity=severity,
-                    redaction=redaction,
-                    value_preview=preview,
+        # Two folded variants (invisibles dropped / replaced by a space); findings
+        # are unioned and deduplicated by pattern_type.
+        for variant in _fold_variants(value):
+            normalized = variant
+            if self._whitelist:
+                for p in self._whitelist:
+                    normalized = p.sub(lambda m: " " if m.end() > m.start() else "", normalized)
+                if not normalized.strip():
+                    continue
+            for pattern_type, severity, redaction in self._match(normalized, is_ioc_field):
+                if pattern_type in seen:
+                    continue
+                seen.add(pattern_type)
+                findings.append(
+                    InjectionFinding(
+                        field=field_name,
+                        pattern_type=pattern_type,
+                        severity=severity,
+                        redaction=redaction,
+                        value_preview=preview,
+                    )
                 )
-            )
-
-        # if (not elif) so all patterns in a value are reported.
-        if self.pattern_ignore_instructions.search(normalized):
-            add("instruction_override", SeverityLevel.CRITICAL, "[REDACTED: instruction override attempt]")
-        if self.pattern_instead_output.search(normalized):
-            add("output_manipulation", SeverityLevel.CRITICAL, "[REDACTED: output manipulation attempt]")
-        if self.pattern_json_escapes.search(normalized):
-            add("json_escape_sequence", SeverityLevel.WARNING, "[REDACTED: JSON escape sequences]")
-        if not is_ioc_field and self.pattern_base64_hex.search(normalized):
-            add("encoded_payload", SeverityLevel.WARNING, "[REDACTED: encoded payload]")
-        if self.pattern_shell_commands.search(normalized):
-            add("shell_injection", SeverityLevel.CRITICAL, "[REDACTED: shell command attempt]")
-        if self.pattern_jailbreak.search(normalized):
-            add("jailbreak", SeverityLevel.CRITICAL, "[REDACTED: jailbreak / role-override attempt]")
-        if self.pattern_prompt_exfil.search(normalized):
-            add("prompt_exfiltration", SeverityLevel.CRITICAL, "[REDACTED: system-prompt exfiltration attempt]")
 
         return findings
+
+    def _match(self, normalized: str, is_ioc_field: bool) -> list[tuple[str, SeverityLevel, str]]:
+        """Run every pattern on one folded string (if, not elif: all are reported)."""
+        hits: list[tuple[str, SeverityLevel, str]] = []
+        if self.pattern_ignore_instructions.search(normalized):
+            hits.append(("instruction_override", SeverityLevel.CRITICAL, "[REDACTED: instruction override attempt]"))
+        if self.pattern_instead_output.search(normalized):
+            hits.append(("output_manipulation", SeverityLevel.CRITICAL, "[REDACTED: output manipulation attempt]"))
+        if self.pattern_json_escapes.search(normalized):
+            hits.append(("json_escape_sequence", SeverityLevel.WARNING, "[REDACTED: JSON escape sequences]"))
+        if not is_ioc_field and self.pattern_base64_hex.search(normalized):
+            hits.append(("encoded_payload", SeverityLevel.WARNING, "[REDACTED: encoded payload]"))
+        if self.pattern_shell_commands.search(normalized):
+            hits.append(("shell_injection", SeverityLevel.CRITICAL, "[REDACTED: shell command attempt]"))
+        if self.pattern_jailbreak.search(normalized):
+            hits.append(("jailbreak", SeverityLevel.CRITICAL, "[REDACTED: jailbreak / role-override attempt]"))
+        if self.pattern_prompt_exfil.search(normalized):
+            hits.append(
+                ("prompt_exfiltration", SeverityLevel.CRITICAL, "[REDACTED: system-prompt exfiltration attempt]")
+            )
+        return hits
 
     @staticmethod
     def _truncate(value: str, max_len: int = 80) -> str:
