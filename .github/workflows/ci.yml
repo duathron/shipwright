@@ -24,7 +24,7 @@ jobs:
         with:
           persist-credentials: false
       - uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
-      - run: uv sync --dev
+      - run: uv sync --locked --dev
       - run: uv run mypy
 
   # Template self-test (G11/G8): render the Copier template into a throwaway
@@ -43,7 +43,7 @@ jobs:
         with:
           persist-credentials: false
       - uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
-      - run: uv sync --dev
+      - run: uv sync --locked --dev
       - env:
           PRESET: ${{ matrix.preset }}
         run: bash scripts/template-selftest.sh "$PRESET"
@@ -58,7 +58,7 @@ jobs:
         with:
           persist-credentials: false
       - uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
-      - run: uv sync --dev
+      - run: uv sync --locked --dev
       - run: uvx --from cyclonedx-bom cyclonedx-py environment --output-format JSON --output-file sbom.cdx.json
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
