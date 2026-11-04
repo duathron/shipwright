@@ -260,6 +260,61 @@ class TestBypassForms:
         assert_safe_url("http://127.0.0.1:11434/", allow_loopback=True)
 
 
+class TestParserDifferential:
+    """A1 item 1: urllib3/requests treat a backslash as a delimiter; urlsplit does not."""
+
+    @pytest.mark.parametrize(
+        "url",
+        [
+            "http://127.0.0.1:8080\\@example.com/",
+            "http://169.254.169.254\\@evil.com/",
+            "http://evil.com\\@169.254.169.254/",
+            "http://example.com/\tpath",
+            "http://example.com/ path",
+            "http://example.com/\npath",
+            "http://example.com/\x7fpath",
+            "http://example.com/\x00path",
+            "http://ex\u00e4mple.com/",
+            "http://\u0435xample.com/",
+        ],
+        ids=lambda u: repr(u),
+    )
+    def test_rejected(self, url):
+        with pytest.raises(UnsafeURLError):
+            assert_safe_url(url)
+
+    def test_backslash_guard_assert(self):
+        assert "\\" in "http://127.0.0.1\\@example.com/"
+
+    def test_plain_https_still_passes(self):
+        assert_safe_url("https://example.com/")
+
+    def test_urllib3_and_urlsplit_hosts_agree_for_accepted_urls(self):
+        urllib3 = pytest.importorskip("urllib3")
+        from urllib.parse import urlsplit
+
+        poc = [
+            "http://127.0.0.1:8080\\@example.com/",
+            "http://169.254.169.254\\@evil.com/",
+            "http://evil.com\\@169.254.169.254/",
+            "http://169.254.169.254\\.evil.com/",
+            "http://evil.com:80\\@169.254.169.254/",
+            "http://example.com/",
+        ]
+        for url in poc:
+            try:
+                other = urllib3.util.parse_url(url).host
+            except Exception:
+                other = None
+            if (urlsplit(url).hostname or "").lower() != (other or "").lower():
+                with pytest.raises(UnsafeURLError):
+                    assert_safe_url(url)
+
+    def test_site_local_blocked(self):
+        with pytest.raises(UnsafeURLError):
+            assert_safe_url("http://[fec0::1]/")
+
+
 class TestExports:
     def test_exports_available_from_security_package(self):
         from shipwright_kit.security import (  # noqa: F401

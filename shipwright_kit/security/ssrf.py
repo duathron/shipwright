@@ -35,6 +35,7 @@ class UnsafeURLError(ValueError):
 _EXTRA_BLOCKED_NETS = (
     ipaddress.ip_network("192.0.0.0/24"),  # IETF protocol assignments
     ipaddress.ip_network("64:ff9b::/96"),  # NAT64 (embeds an IPv4 address)
+    ipaddress.ip_network("fec0::/10"),  # deprecated site-local
 )
 
 
@@ -97,6 +98,10 @@ def assert_safe_url(
     hosts, including legacy forms such as ``127.1`` or ``2130706433`` and a
     trailing dot, are always range-checked.
 
+    URLs containing a backslash, a control character, a space or any non-ASCII
+    character are rejected outright (parser-differential guard); callers must
+    IDNA-encode internationalized hostnames to ASCII first.
+
     Caveat: this is a best-effort, TOCTOU-prone check. DNS is not pinned —
     the hostname can re-resolve to a different (unsafe) address between this
     check and the actual outbound request (a classic DNS-rebinding SSRF
@@ -105,6 +110,13 @@ def assert_safe_url(
     explicit host allowlist; this function is a guardrail, not a substitute
     for that.
     """
+    # Parser differential (CWE-918/436): urlsplit treats a backslash as an
+    # ordinary character, while urllib3/requests treat it as a delimiter, so
+    # ``http://127.0.0.1\\@example.com/`` would be vetted as example.com yet
+    # fetched from loopback. Reject anything the two parsers could disagree on.
+    if any(c == "\\" or c <= " " or c == "\x7f" or ord(c) > 0x7F for c in url):
+        raise UnsafeURLError(f"URL contains a backslash, control, space or non-ASCII character: {url!r}")
+
     try:
         parsed = urlsplit(url)
     except ValueError as exc:
