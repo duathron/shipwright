@@ -1,5 +1,4 @@
-{% raw %}
-name: Release
+{%- raw %}name: Release
 # Copy of shipwright `.github/workflows/release.yml` at v0.12.1 - re-sync from shipwright on template update (drift note); keep this filename - your PyPI Trusted Publisher names it.
 # release-please opens/merges the release PR and tags the version; on a freshly
 # created release this same workflow builds the distributions + SBOM in a `build`
@@ -96,4 +95,4 @@ jobs:
         uses: pypa/gh-action-pypi-publish@7245906fb61fa33a13554f9d5fb856fe61758086 # v1.14.3
         with:
           attestations: true
-{% endraw %}
+{% endraw -%}

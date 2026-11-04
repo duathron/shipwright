@@ -169,3 +169,13 @@ def test_rendered_dependabot_has_cooldown_on_every_entry(tmp_path):
     assert cfg["updates"]
     for entry in cfg["updates"]:
         assert "cooldown" in entry, entry["package-ecosystem"]
+
+
+def test_version_annotation_and_generic_extra_file(tmp_path):
+    proj = _render(tmp_path, "none", pypi_name="Acme_Scanner")
+    init = (proj / "acme" / "__init__.py").read_text()
+    line = next(ln for ln in init.splitlines() if ln.startswith("__version__"))
+    assert "# x-release-please-version" in line
+    cfg = json.loads((proj / "release-please-config.json").read_text())
+    extra = cfg["packages"]["."]["extra-files"]
+    assert {"type": "generic", "path": "acme/__init__.py"} in extra
