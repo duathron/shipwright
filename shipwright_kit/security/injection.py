@@ -34,7 +34,8 @@ INJECTION_PATTERNS_VERSION = 2
 
 # Cyrillic/Greek look-alikes folded to Latin before matching (written as
 # escapes — never paste the raw characters). The mapping targets only letters
-# that are visually indistinguishable from a Latin letter.
+# that are visually indistinguishable from a Latin letter. Best-effort, not
+# complete: Unicode has more look-alikes than are listed here.
 _CONFUSABLES = str.maketrans(
     {
         "\u0430": "a",
@@ -71,14 +72,40 @@ _CONFUSABLES = str.maketrans(
         "\u039a": "K",
         "\u03a1": "P",
         "\u03a4": "T",
+        "\u0578": "n",
+        "\u0585": "o",
+        "\u057d": "u",
+        "\u0261": "g",
+        "\u026a": "i",
+        "\u1d0f": "o",
+        "\u0475": "v",
+        "\u0433": "r",
+        "\u0442": "t",
+        "\ua4f2": "l",
     }
 )
 
 
+# Categories dropped from the matching copy: combining/enclosing marks, format,
+# surrogate, private-use and control characters (TAB/LF/CR are kept).
+_DROP_CATEGORIES = frozenset({"Mn", "Me", "Cf", "Cs", "Co", "Cc"})
+_KEEP_WHITESPACE = frozenset("\t\n\r")
+# Invisible "filler" characters that are not in a dropped category (U+1D159 is
+# category So, so a category rule cannot catch it). NFKD (not NFKC) is used so a
+# combining mark on a letter is separated and dropped; as a consequence an
+# operator whitelist pattern containing accented letters no longer matches
+# (fail-safe: more findings, never fewer).
+_FILLERS = frozenset("\u115f\u1160\u3164\uffa0\u2800\u17b4\u17b5\ufffc\u0640\U0001d159")
+
+
 def _fold(value: str) -> str:
-    """NFKC, drop invisible format (Cf) characters, fold confusable letters."""
-    text = unicodedata.normalize("NFKC", value)
-    text = "".join(c for c in text if unicodedata.category(c) != "Cf")
+    """NFKD, drop invisible/combining/control characters and fillers, fold confusables."""
+    text = unicodedata.normalize("NFKD", value)
+    text = "".join(
+        c
+        for c in text
+        if c in _KEEP_WHITESPACE or (c not in _FILLERS and unicodedata.category(c) not in _DROP_CATEGORIES)
+    )
     return text.translate(_CONFUSABLES)
 
 
@@ -115,7 +142,9 @@ class PromptInjectionDetector:
             outside it is still scanned. Matching runs on the normalized,
             confusable-folded string. Known limit: a whitelisted token placed
             inside an attack word splits it once the span is removed, which
-            requires knowing the operator's whitelist.
+            requires knowing the operator's whitelist. A broad slot such as
+            ``\\S+`` also exempts whatever token an attacker places in it;
+            the breadth of each pattern is the operator's choice.
     """
 
     def __init__(
@@ -170,7 +199,7 @@ class PromptInjectionDetector:
 
         # Pattern 5: Shell command injection.
         self.pattern_shell_commands = re.compile(
-            r"(?:\$\([^)]*\)|`[^`]*`|\$\w+)",
+            r"(?:\$\([^)\n]{0,200}\)|`[^`\n]{0,200}`|\$\w+)",
             flags,
         )
 
