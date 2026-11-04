@@ -54,6 +54,7 @@ dev = [
     "copier>=9",
     "packaging",
     "typer>=0.9",
+    "urllib3>=2.8.0,<3",
 ]
 
 [tool.setuptools.packages.find]
