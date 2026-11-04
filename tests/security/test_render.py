@@ -76,3 +76,36 @@ class TestBidiAndInvisibleStripped:
         payload = "a" + cp + "b"
         assert cp in payload
         assert safe_render(payload) == payload
+
+
+_MORE_STRIPPED = [
+    "\U000e0041",
+    "\U000e007f",
+    "\u00ad",
+    "\u206a",
+    "\u206f",
+    "\ufff9",
+    "\ufffb",
+    "\u180e",
+    "\u2028",
+    "\u2029",
+    "\u034f",
+]
+
+
+class TestAllFormatCharsStripped:
+    """A1 item 6: every Cf character except ZWJ/ZWNJ, plus U+2028/2029 and U+034F."""
+
+    @pytest.mark.parametrize("cp", _MORE_STRIPPED, ids=lambda c: f"U+{ord(c):04X}")
+    def test_stripped(self, cp):
+        payload = "abc" + cp + "dcba"
+        assert cp in payload
+        assert safe_render(payload) == "abcdcba"
+
+    def test_zwj_emoji_sequence_preserved(self):
+        seq = "\U0001f468\u200d\U0001f469\u200d\U0001f467"
+        assert "\u200d" in seq
+        assert safe_render(seq) == seq
+
+    def test_tab_lf_kept(self):
+        assert safe_render("a\tb\nc") == "a\tb\nc"
