@@ -7,6 +7,8 @@ project_name:
 pypi_name:
   type: str
   help: PyPI distribution name (e.g. acme-scanner)
+  validator: >-
+    {% if not (pypi_name | regex_search('^[A-Za-z0-9]+([._-][A-Za-z0-9]+)*$')) %}pypi_name must be alphanumerics with single separators (. _ -){% endif %}
 package_name:
   type: str
   help: Python import package, snake_case (e.g. acme_scanner)

@@ -16,5 +16,9 @@ Built with the [Shipwright](https://github.com/duathron/shipwright) framework.
     uv run pre-commit install
     just lint && just test && just dogfood
 
+### Release setup
+
+Run `uv lock` and commit `uv.lock` (CI uses `uv sync --locked`). Configure the PyPI Trusted Publisher for workflow `release.yml` and environment `pypi` (give the environment a required reviewer and a `main` branch policy). Enable the repository setting "Allow GitHub Actions to create and approve pull requests" so release-please can open release PRs. `.github/workflows/release.yml` is a copy of Shipwright's own release workflow: re-sync it when you update the template.
+
 ## License
 MIT (c) {{ author_name }}
