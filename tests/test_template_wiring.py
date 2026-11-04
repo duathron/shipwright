@@ -1,15 +1,19 @@
 # tests/test_template_wiring.py
+import json
+import re
 import subprocess
 import tomllib
 from pathlib import Path
 
+import pytest
+import yaml
 from packaging.requirements import Requirement
 
 # copier is a dev dependency (added in Task 3) → its console script is on the
 # venv PATH under `uv run pytest`. No skip-guard: the test MUST run in CI.
 
 
-def _render(tmp: Path, preset: str) -> Path:
+def _render(tmp: Path, preset: str, pypi_name: str = "acme") -> Path:
     dst = tmp / "proj"
     subprocess.run(
         [
@@ -21,7 +25,7 @@ def _render(tmp: Path, preset: str) -> Path:
             "--data",
             "project_name=Acme",
             "--data",
-            "pypi_name=acme",
+            f"pypi_name={pypi_name}",
             "--data",
             "package_name=acme",
             "--data",
@@ -56,10 +60,10 @@ def test_security_preset_installs_security_extra(tmp_path):
     text = (proj / "pyproject.toml").read_text()
     req = _shipwright_req(text)
     assert req.extras == set()  # security pack ships with base (entry-point); no [security] extra exists
-    # W2: PyPI range pin (>=0.7,<0.8) — url is None, specifier encodes the range
+    # PyPI range pin (>=0.12.1,<0.13) — url is None, specifier encodes the range
     assert req.url is None
-    assert ">=0.7" in str(req.specifier)
-    assert "<0.8" in str(req.specifier)
+    assert ">=0.12.1" in str(req.specifier)
+    assert "<0.13" in str(req.specifier)
     assert 'preset = "security"' in text
     banner = proj / "acme" / "banner.py"
     assert banner.exists()
@@ -71,8 +75,155 @@ def test_none_preset_core_only(tmp_path):
     text = (proj / "pyproject.toml").read_text()
     req = _shipwright_req(text)
     assert req.extras == set()  # no security extra
-    # W2: PyPI range pin (>=0.7,<0.8) — url is None, specifier encodes the range
+    # PyPI range pin (>=0.12.1,<0.13) — url is None, specifier encodes the range
     assert req.url is None
-    assert ">=0.7" in str(req.specifier)
-    assert "<0.8" in str(req.specifier)
+    assert ">=0.12.1" in str(req.specifier)
+    assert "<0.13" in str(req.specifier)
     assert 'preset = "none"' in text
+
+
+_SHA40 = re.compile(r"^[0-9a-f]{40}$")
+
+
+def _workflows(proj: Path) -> list[Path]:
+    wfs = sorted((proj / ".github" / "workflows").glob("*.yml"))
+    assert wfs
+    return wfs
+
+
+def test_rendered_workflows_are_sha_pinned(tmp_path):
+    for preset in ("none", "security"):
+        proj = _render(tmp_path / preset, preset)
+        for wf in _workflows(proj):
+            text = wf.read_text()
+            assert "@main" not in text and "@master" not in text, wf.name
+            for ref in re.findall(r"uses:\s*\S+@(\S+)", text):
+                assert _SHA40.match(ref), (wf.name, ref)
+
+
+def test_rendered_release_publish_job_is_inline_and_least_privilege(tmp_path):
+    for preset in ("none", "security"):
+        proj = _render(tmp_path / preset, preset)
+        text = (proj / ".github" / "workflows" / "release.yml").read_text()
+        assert "python-release.yml" not in text
+        # GitHub expressions must survive Jinja rendering literally
+        assert "${{ needs.release-please.outputs.release_created == 'true' }}" in text
+        assert "shipwright-kit" not in text
+        wf = yaml.safe_load(text)
+        jobs = wf["jobs"]
+        assert jobs["publish"]["environment"] == "pypi"
+        assert jobs["publish"]["permissions"] == {"id-token": "write"}
+        for name, job in jobs.items():
+            if name != "publish":
+                assert "id-token" not in (job.get("permissions") or {}), name
+        assert "id-token" not in (wf.get("permissions") or {})
+
+
+def _uvlock_jsonpath(proj: Path) -> str:
+    cfg = json.loads((proj / "release-please-config.json").read_text())
+    files = cfg["packages"]["."]["extra-files"]
+    return next(f["jsonpath"] for f in files if f["path"] == "uv.lock")
+
+
+def test_release_please_uvlock_extra_file_names_normalised_dist(tmp_path):
+    proj = _render(tmp_path / "a", "none")
+    assert "'acme'" in _uvlock_jsonpath(proj)
+    proj2 = _render(tmp_path / "b", "none", pypi_name="Acme_Scanner")
+    assert "'acme-scanner'" in _uvlock_jsonpath(proj2)
+
+
+def test_pypi_name_validator_rejects_consecutive_separators(tmp_path):
+    dst = tmp_path / "proj"
+    res = subprocess.run(
+        [
+            "copier",
+            "copy",
+            "--defaults",
+            "--vcs-ref",
+            "HEAD",
+            "--data",
+            "project_name=Acme",
+            "--data",
+            "pypi_name=a__b",
+            "--data",
+            "package_name=acme",
+            "--data",
+            "cli_command=acme",
+            "--data",
+            "description=d",
+            "--data",
+            "env_prefix=ACME",
+            ".",
+            str(dst),
+        ],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    assert res.returncode != 0
+    assert "pypi_name must be alphanumerics with single separators" in res.stderr
+
+
+def test_rendered_dependabot_has_cooldown_on_every_entry(tmp_path):
+    proj = _render(tmp_path, "none")
+    cfg = yaml.safe_load((proj / ".github" / "dependabot.yml").read_text())
+    assert cfg["updates"]
+    for entry in cfg["updates"]:
+        assert "cooldown" in entry, entry["package-ecosystem"]
+
+
+def test_version_annotation_and_generic_extra_file(tmp_path):
+    proj = _render(tmp_path, "none", pypi_name="Acme_Scanner")
+    init = (proj / "acme" / "__init__.py").read_text()
+    line = next(ln for ln in init.splitlines() if ln.startswith("__version__"))
+    assert "# x-release-please-version" in line
+    cfg = json.loads((proj / "release-please-config.json").read_text())
+    extra = cfg["packages"]["."]["extra-files"]
+    assert {"type": "generic", "path": "acme/__init__.py"} in extra
+
+
+_GOOD = {
+    "project_name": "Acme",
+    "pypi_name": "acme",
+    "package_name": "acme",
+    "cli_command": "acme",
+    "description": "d",
+    "env_prefix": "ACME",
+    "python_version": "3.11",
+}
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [
+        ("pypi_name", "ok-name\n"),
+        ("description", 'say "hi"'),
+        ("description", "line1\nline2"),
+        ("project_name", "back\\slash"),
+        ("author_name", "$(id)"),
+        ("author_email", "a`b@example.com"),
+        ("package_name", 'a"b'),
+        ("cli_command", "x$(touch /tmp/PWN1)"),
+        ("env_prefix", "acme"),
+        ("python_version", '3.11"\n    secrets: inherit'),
+        ("package_name", "acme\n"),
+        ("cli_command", "acme\n"),
+        ("env_prefix", "ACME\n"),
+        ("python_version", "3.11\n"),
+        ("python_version", "3.\u0661\u0661"),
+    ],
+)
+def test_copier_answers_hostile_values_rejected(tmp_path, field, value):
+    data = {**_GOOD, field: value}
+    cmd = ["copier", "copy", "--defaults", "--vcs-ref", "HEAD"]
+    for k, v in data.items():
+        cmd += ["--data", f"{k}={v}"]
+    res = subprocess.run(
+        [*cmd, ".", str(tmp_path / "proj")],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    assert res.returncode != 0
+    assert "Validation error" in res.stderr
+    assert not (tmp_path / "proj").exists() or not list((tmp_path / "proj").iterdir())

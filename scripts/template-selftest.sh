@@ -26,8 +26,16 @@ cd "$PROJ"
 echo "== generated project tree =="
 find . -type f -not -path './.git/*' | sort
 
-echo "== uv sync (builds the generated package + installs deps) =="
-uv sync
+echo "== git init + uv lock + uv sync --locked (mirrors python-ci) =="
+git init -q
+uv lock
+uv sync --locked
+
+echo "== workflow lint: zizmor (offline) on rendered .github/ =="
+uvx zizmor@1.26.1 --offline --strict-collection --collect=all .github/
+
+echo "== workflow lint: actionlint (pinned 1.7.12.25, released 2026-09-22) =="
+uvx --from actionlint-py==1.7.12.25 actionlint
 
 echo "== generated project QA gate: lint =="
 uv run ruff check .

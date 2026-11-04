@@ -4,31 +4,49 @@ _templates_suffix: .jinja
 project_name:
   type: str
   help: Human-readable project name (e.g. "Acme Scanner")
+  validator: >-
+    {% if (project_name | regex_search('[\x00-\x1f\x7f\"\\\\$`]')) %}project_name must not contain quotes, backslashes, $, backticks or control characters{% endif %}
 pypi_name:
   type: str
   help: PyPI distribution name (e.g. acme-scanner)
+  validator: >-
+    {% if not (pypi_name | regex_search('\A[A-Za-z0-9]+([._-][A-Za-z0-9]+)*\Z')) %}pypi_name must be alphanumerics with single separators (. _ -){% endif %}
 package_name:
   type: str
   help: Python import package, snake_case (e.g. acme_scanner)
+  validator: >-
+    {% if not (package_name | regex_search('\A[a-z_][a-z0-9_]*\Z')) %}package_name must be lower-case snake_case{% endif %}
 cli_command:
   type: str
   help: CLI command users type (e.g. acme)
+  validator: >-
+    {% if not (cli_command | regex_search('\A[a-z0-9][a-z0-9_-]*\Z')) %}cli_command must be lower-case letters, digits, - or _{% endif %}
 description:
   type: str
   help: One-line description
+  validator: >-
+    {% if (description | regex_search('[\x00-\x1f\x7f\"\\\\$`]')) %}description must not contain quotes, backslashes, $, backticks or control characters{% endif %}
 env_prefix:
   type: str
   help: Uppercase env var prefix for config (e.g. ACME)
+  validator: >-
+    {% if not (env_prefix | regex_search('\A[A-Z][A-Z0-9_]*\Z')) %}env_prefix must be UPPER_SNAKE_CASE{% endif %}
 author_name:
   type: str
   help: Project author name
+  validator: >-
+    {% if (author_name | regex_search('[\x00-\x1f\x7f\"\\\\$`]')) %}author_name must not contain quotes, backslashes, $, backticks or control characters{% endif %}
   default: Your Name
 author_email:
   type: str
   help: Project author email
+  validator: >-
+    {% if (author_email | regex_search('[\x00-\x1f\x7f\"\\\\$`]')) %}author_email must not contain quotes, backslashes, $, backticks or control characters{% endif %}
   default: you@example.com
 python_version:
   type: str
+  validator: >-
+    {% if not (python_version | regex_search('\A3\.[0-9]{1,2}\Z')) %}python_version must look like 3.11{% endif %}
   default: "3.11"
 preset:
   type: str
