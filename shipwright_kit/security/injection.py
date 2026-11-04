@@ -30,7 +30,98 @@ __all__ = [
 # Bump when the pattern SET changes (added/removed/retuned pattern). Lets
 # consumers assert they are matching against a known engine version, mirroring
 # the EVAL_SCHEMA_VERSION / OUTPUT_SCHEMA_VERSION contract discipline (G10).
-INJECTION_PATTERNS_VERSION = 1
+INJECTION_PATTERNS_VERSION = 2
+
+# Cyrillic/Greek look-alikes folded to Latin before matching (written as
+# escapes — never paste the raw characters). The mapping targets only letters
+# that are visually indistinguishable from a Latin letter. Best-effort, not
+# complete: Unicode has more look-alikes than are listed here.
+_CONFUSABLES = str.maketrans(
+    {
+        "\u0430": "a",
+        "\u0435": "e",
+        "\u0456": "i",
+        "\u043e": "o",
+        "\u0440": "p",
+        "\u0441": "c",
+        "\u0443": "y",
+        "\u0445": "x",
+        "\u0455": "s",
+        "\u0458": "j",
+        "\u0501": "d",
+        "\u04cf": "l",
+        "\u03bf": "o",
+        "\u03b1": "a",
+        "\u03b5": "e",
+        "\u03b9": "i",
+        "\u03bd": "v",
+        "\u03c4": "t",
+        "\u03ba": "k",
+        "\u03c1": "p",
+        "\u0410": "A",
+        "\u0415": "E",
+        "\u0406": "I",
+        "\u041e": "O",
+        "\u0420": "P",
+        "\u0421": "C",
+        "\u0425": "X",
+        "\u039f": "O",
+        "\u0391": "A",
+        "\u0395": "E",
+        "\u0399": "I",
+        "\u039a": "K",
+        "\u03a1": "P",
+        "\u03a4": "T",
+        "\u0578": "n",
+        "\u0585": "o",
+        "\u057d": "u",
+        "\u0261": "g",
+        "\u026a": "i",
+        "\u1d0f": "o",
+        "\u0475": "v",
+        "\u0433": "r",
+        "\u0442": "t",
+        "\ua4f2": "l",
+    }
+)
+
+
+# Categories dropped from the matching copy: combining/enclosing marks, format,
+# surrogate, private-use and control characters (whitespace is mapped to a space first).
+_DROP_CATEGORIES = frozenset({"Mn", "Me", "Cf", "Cs", "Co", "Cc"})
+# Invisible "filler" characters that are not in a dropped category (U+1D159 is
+# category So, so a category rule cannot catch it). NFKD (not NFKC) is used so a
+# combining mark on a letter is separated and dropped; as a consequence an
+# operator whitelist pattern containing accented letters no longer matches
+# (fail-safe: more findings, never fewer).
+_FILLERS = frozenset("\u115f\u1160\u3164\uffa0\u2800\u17b4\u17b5\ufffc\u0640\U0001d159")
+
+
+def _fold(value: str, invisible_as: str = "") -> str:
+    """NFKD, normalize whitespace, neutralize invisibles, fold confusables.
+
+    Every ``isspace()`` character (any category, e.g. VT, FF, NEL, FS-US) becomes
+    a plain space so ``\\s`` patterns keep matching. Remaining invisible/combining/
+    control characters and fillers are replaced by ``invisible_as`` ("" drops
+    them, catching ``ig<X>nore``; " " separates, catching ``output<X>instead``).
+    """
+    text = unicodedata.normalize("NFKD", value)
+    out: list[str] = []
+    for c in text:
+        if c.isspace():
+            out.append(" ")
+        elif c in _FILLERS or unicodedata.category(c) in _DROP_CATEGORIES:
+            out.append(invisible_as)
+        else:
+            out.append(c)
+    return "".join(out).translate(_CONFUSABLES)
+
+
+def _fold_variants(value: str) -> list[str]:
+    """The dropped variant, plus the spaced variant when it differs."""
+    dropped = _fold(value)
+    spaced = _fold(value, " ")
+    return [dropped] if spaced == dropped else [dropped, spaced]
 
 
 class SeverityLevel(str, Enum):
@@ -61,8 +152,14 @@ class PromptInjectionDetector:
 
     Args:
         case_insensitive: case-insensitive matching when True (default).
-        whitelist_patterns: regex strings; a value matching any one is exempt
-            from all checks (operator-defined known-safe templates).
+        whitelist_patterns: regex strings for operator-defined known-safe
+            text. A whitelist match exempts only the matched text; content
+            outside it is still scanned. Matching runs on the normalized,
+            confusable-folded string. Known limit: a whitelisted token placed
+            inside an attack word splits it once the span is removed, which
+            requires knowing the operator's whitelist. A broad slot such as
+            ``\\S+`` also exempts whatever token an attacker places in it;
+            the breadth of each pattern is the operator's choice.
     """
 
     def __init__(
@@ -89,9 +186,9 @@ class PromptInjectionDetector:
         # Pattern 2: LLM-redirection via "instead" / "rather than".
         self.pattern_instead_output = re.compile(
             r"(?:"
-            r"(output|respond|return|generate|create|print|write)\s+instead"
-            r"|instead[\s,;.]+(?:of\s+)?(output|respond|return|generate|create|print|write)"
-            r"|rather\s+than\s+(?:summariz|analyz|triag|the\s+above)"
+            r"(output|respond|return|generate|create|print|write)\s*instead"
+            r"|instead[\s,;.]*(?:of\s*)?(output|respond|return|generate|create|print|write)"
+            r"|rather\s*than\s*(?:summariz|analyz|triag|the\s*above)"
             r")",
             flags,
         )
@@ -117,7 +214,7 @@ class PromptInjectionDetector:
 
         # Pattern 5: Shell command injection.
         self.pattern_shell_commands = re.compile(
-            r"(?:\$\([^)]*\)|`[^`]*`|\$\w+)",
+            r"(?:\$\([^)\n]{0,200}\)|`[^`\n]{0,200}`|\$\w+)",
             flags,
         )
 
@@ -127,11 +224,11 @@ class PromptInjectionDetector:
         self.pattern_jailbreak = re.compile(
             r"(?:act as|you are now|pretend to be|roleplay as|behave as)[\s\S]{0,40}?"
             r"(?:"
-            r"(?:unrestricted|unfiltered|jailbroken|uncensored|unaligned)\s+"
+            r"(?:unrestricted|unfiltered|jailbroken|uncensored|unaligned)\s*"
             r"(?:assistant|ai|model|chatbot|llm|gpt|bot|agent|persona|mode|version)"
             r"|jailbroken"
             r"|dan\b"
-            r"|do\s+anything\s+now"
+            r"|do\s*anything\s*now"
             r")",
             flags | re.DOTALL,
         )
@@ -139,10 +236,10 @@ class PromptInjectionDetector:
         # Pattern 7: System-prompt exfiltration — exfil verb + high-signal prompt
         # noun only (system prompt / your [system] prompt / system instructions).
         self.pattern_prompt_exfil = re.compile(
-            r"(?:reveal|print|show|output|repeat|leak|disclose|dump|expose|contents?\s+of)"
+            r"(?:reveal|print|show|output|repeat|leak|disclose|dump|expose|contents?\s*of)"
             r"[\s\S]{0,40}?"
-            r"(?:system\s*prompt|system\s+instructions?"
-            r"|your\s+(?:system\s+)?prompt|your\s+system\s+instructions?)",
+            r"(?:system\s*prompt|system\s*instructions?"
+            r"|your\s*(?:system\s*)?prompt|your\s*system\s*instructions?)",
             flags | re.DOTALL,
         )
 
@@ -157,42 +254,55 @@ class PromptInjectionDetector:
         if not isinstance(value, str):
             return []
 
-        normalized = unicodedata.normalize("NFKC", value)
-
-        if self._whitelist and any(p.search(normalized) for p in self._whitelist):
-            return []
-
         findings: list[InjectionFinding] = []
+        seen: set[str] = set()
         preview = self._truncate(value)
 
-        def add(pattern_type: str, severity: SeverityLevel, redaction: str) -> None:
-            findings.append(
-                InjectionFinding(
-                    field=field_name,
-                    pattern_type=pattern_type,
-                    severity=severity,
-                    redaction=redaction,
-                    value_preview=preview,
+        # Two folded variants (invisibles dropped / replaced by a space); findings
+        # are unioned and deduplicated by pattern_type.
+        for variant in _fold_variants(value):
+            normalized = variant
+            if self._whitelist:
+                for p in self._whitelist:
+                    normalized = p.sub(lambda m: " " if m.end() > m.start() else "", normalized)
+                if not normalized.strip():
+                    continue
+            for pattern_type, severity, redaction in self._match(normalized, is_ioc_field):
+                if pattern_type in seen:
+                    continue
+                seen.add(pattern_type)
+                findings.append(
+                    InjectionFinding(
+                        field=field_name,
+                        pattern_type=pattern_type,
+                        severity=severity,
+                        redaction=redaction,
+                        value_preview=preview,
+                    )
                 )
-            )
-
-        # if (not elif) so all patterns in a value are reported.
-        if self.pattern_ignore_instructions.search(normalized):
-            add("instruction_override", SeverityLevel.CRITICAL, "[REDACTED: instruction override attempt]")
-        if self.pattern_instead_output.search(normalized):
-            add("output_manipulation", SeverityLevel.CRITICAL, "[REDACTED: output manipulation attempt]")
-        if self.pattern_json_escapes.search(normalized):
-            add("json_escape_sequence", SeverityLevel.WARNING, "[REDACTED: JSON escape sequences]")
-        if not is_ioc_field and self.pattern_base64_hex.search(normalized):
-            add("encoded_payload", SeverityLevel.WARNING, "[REDACTED: encoded payload]")
-        if self.pattern_shell_commands.search(normalized):
-            add("shell_injection", SeverityLevel.CRITICAL, "[REDACTED: shell command attempt]")
-        if self.pattern_jailbreak.search(normalized):
-            add("jailbreak", SeverityLevel.CRITICAL, "[REDACTED: jailbreak / role-override attempt]")
-        if self.pattern_prompt_exfil.search(normalized):
-            add("prompt_exfiltration", SeverityLevel.CRITICAL, "[REDACTED: system-prompt exfiltration attempt]")
 
         return findings
+
+    def _match(self, normalized: str, is_ioc_field: bool) -> list[tuple[str, SeverityLevel, str]]:
+        """Run every pattern on one folded string (if, not elif: all are reported)."""
+        hits: list[tuple[str, SeverityLevel, str]] = []
+        if self.pattern_ignore_instructions.search(normalized):
+            hits.append(("instruction_override", SeverityLevel.CRITICAL, "[REDACTED: instruction override attempt]"))
+        if self.pattern_instead_output.search(normalized):
+            hits.append(("output_manipulation", SeverityLevel.CRITICAL, "[REDACTED: output manipulation attempt]"))
+        if self.pattern_json_escapes.search(normalized):
+            hits.append(("json_escape_sequence", SeverityLevel.WARNING, "[REDACTED: JSON escape sequences]"))
+        if not is_ioc_field and self.pattern_base64_hex.search(normalized):
+            hits.append(("encoded_payload", SeverityLevel.WARNING, "[REDACTED: encoded payload]"))
+        if self.pattern_shell_commands.search(normalized):
+            hits.append(("shell_injection", SeverityLevel.CRITICAL, "[REDACTED: shell command attempt]"))
+        if self.pattern_jailbreak.search(normalized):
+            hits.append(("jailbreak", SeverityLevel.CRITICAL, "[REDACTED: jailbreak / role-override attempt]"))
+        if self.pattern_prompt_exfil.search(normalized):
+            hits.append(
+                ("prompt_exfiltration", SeverityLevel.CRITICAL, "[REDACTED: system-prompt exfiltration attempt]")
+            )
+        return hits
 
     @staticmethod
     def _truncate(value: str, max_len: int = 80) -> str:
