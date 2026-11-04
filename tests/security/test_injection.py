@@ -282,9 +282,9 @@ class TestWhitespaceSeparatorsKept:
     @pytest.mark.parametrize(
         "text",
         [
-            "Prüfung der Größe Änderung Schließung",
-            "Обнаружена подозрительная активность на сервере",
-            "Phát hiện hoạt động đáng ngờ trên máy chủ",
+            "Pr\u00fcfung der Gr\u00f6\u00dfe \u00c4nderung Schlie\u00dfung",
+            "\u041e\u0431\u043d\u0430\u0440\u0443\u0436\u0435\u043d\u0430 \u043f\u043e\u0434\u043e\u0437\u0440\u0438\u0442\u0435\u043b\u044c\u043d\u0430\u044f \u0430\u043a\u0442\u0438\u0432\u043d\u043e\u0441\u0442\u044c \u043d\u0430 \u0441\u0435\u0440\u0432\u0435\u0440\u0435",
+            "Ph\u00e1t hi\u1ec7n ho\u1ea1t \u0111\u1ed9ng \u0111\u00e1ng ng\u1edd tr\u00ean m\u00e1y ch\u1ee7",
             "line one\x0bline two\x0cline three",
         ],
     )
