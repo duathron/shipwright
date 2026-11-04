@@ -186,9 +186,9 @@ class PromptInjectionDetector:
         # Pattern 2: LLM-redirection via "instead" / "rather than".
         self.pattern_instead_output = re.compile(
             r"(?:"
-            r"(output|respond|return|generate|create|print|write)\s+instead"
-            r"|instead[\s,;.]+(?:of\s+)?(output|respond|return|generate|create|print|write)"
-            r"|rather\s+than\s+(?:summariz|analyz|triag|the\s+above)"
+            r"(output|respond|return|generate|create|print|write)\s*instead"
+            r"|instead[\s,;.]*(?:of\s*)?(output|respond|return|generate|create|print|write)"
+            r"|rather\s*than\s*(?:summariz|analyz|triag|the\s*above)"
             r")",
             flags,
         )
@@ -224,11 +224,11 @@ class PromptInjectionDetector:
         self.pattern_jailbreak = re.compile(
             r"(?:act as|you are now|pretend to be|roleplay as|behave as)[\s\S]{0,40}?"
             r"(?:"
-            r"(?:unrestricted|unfiltered|jailbroken|uncensored|unaligned)\s+"
+            r"(?:unrestricted|unfiltered|jailbroken|uncensored|unaligned)\s*"
             r"(?:assistant|ai|model|chatbot|llm|gpt|bot|agent|persona|mode|version)"
             r"|jailbroken"
             r"|dan\b"
-            r"|do\s+anything\s+now"
+            r"|do\s*anything\s*now"
             r")",
             flags | re.DOTALL,
         )
@@ -236,10 +236,10 @@ class PromptInjectionDetector:
         # Pattern 7: System-prompt exfiltration — exfil verb + high-signal prompt
         # noun only (system prompt / your [system] prompt / system instructions).
         self.pattern_prompt_exfil = re.compile(
-            r"(?:reveal|print|show|output|repeat|leak|disclose|dump|expose|contents?\s+of)"
+            r"(?:reveal|print|show|output|repeat|leak|disclose|dump|expose|contents?\s*of)"
             r"[\s\S]{0,40}?"
-            r"(?:system\s*prompt|system\s+instructions?"
-            r"|your\s+(?:system\s+)?prompt|your\s+system\s+instructions?)",
+            r"(?:system\s*prompt|system\s*instructions?"
+            r"|your\s*(?:system\s*)?prompt|your\s*system\s*instructions?)",
             flags | re.DOTALL,
         )
 
