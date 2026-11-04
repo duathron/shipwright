@@ -3,6 +3,13 @@
 All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 and [Semantic Versioning](https://semver.org/).
 
+## [0.12.1](https://github.com/duathron/shipwright/compare/v0.12.0...v0.12.1) (2026-11-04)
+
+
+### Bug Fixes
+
+* **security:** harden ssrf, injection, safe_render, ollama scheme (fleet audit 2026-11-04) ([#38](https://github.com/duathron/shipwright/issues/38)) ([4bbbad5](https://github.com/duathron/shipwright/commit/4bbbad55a238c48d59526709abf7cc6fea710f32))
+
 ## [0.12.0](https://github.com/duathron/shipwright/compare/v0.11.0...v0.12.0) (2026-07-04)
 
 
