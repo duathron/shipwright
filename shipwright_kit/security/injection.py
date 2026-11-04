@@ -30,7 +30,56 @@ __all__ = [
 # Bump when the pattern SET changes (added/removed/retuned pattern). Lets
 # consumers assert they are matching against a known engine version, mirroring
 # the EVAL_SCHEMA_VERSION / OUTPUT_SCHEMA_VERSION contract discipline (G10).
-INJECTION_PATTERNS_VERSION = 1
+INJECTION_PATTERNS_VERSION = 2
+
+# Cyrillic/Greek look-alikes folded to Latin before matching (written as
+# escapes — never paste the raw characters). The mapping targets only letters
+# that are visually indistinguishable from a Latin letter.
+_CONFUSABLES = str.maketrans(
+    {
+        "\u0430": "a",
+        "\u0435": "e",
+        "\u0456": "i",
+        "\u043e": "o",
+        "\u0440": "p",
+        "\u0441": "c",
+        "\u0443": "y",
+        "\u0445": "x",
+        "\u0455": "s",
+        "\u0458": "j",
+        "\u0501": "d",
+        "\u04cf": "l",
+        "\u03bf": "o",
+        "\u03b1": "a",
+        "\u03b5": "e",
+        "\u03b9": "i",
+        "\u03bd": "v",
+        "\u03c4": "t",
+        "\u03ba": "k",
+        "\u03c1": "p",
+        "\u0410": "A",
+        "\u0415": "E",
+        "\u0406": "I",
+        "\u041e": "O",
+        "\u0420": "P",
+        "\u0421": "C",
+        "\u0425": "X",
+        "\u039f": "O",
+        "\u0391": "A",
+        "\u0395": "E",
+        "\u0399": "I",
+        "\u039a": "K",
+        "\u03a1": "P",
+        "\u03a4": "T",
+    }
+)
+
+
+def _fold(value: str) -> str:
+    """NFKC, drop invisible format (Cf) characters, fold confusable letters."""
+    text = unicodedata.normalize("NFKC", value)
+    text = "".join(c for c in text if unicodedata.category(c) != "Cf")
+    return text.translate(_CONFUSABLES)
 
 
 class SeverityLevel(str, Enum):
@@ -61,8 +110,12 @@ class PromptInjectionDetector:
 
     Args:
         case_insensitive: case-insensitive matching when True (default).
-        whitelist_patterns: regex strings; a value matching any one is exempt
-            from all checks (operator-defined known-safe templates).
+        whitelist_patterns: regex strings for operator-defined known-safe
+            text. A whitelist match exempts only the matched text; content
+            outside it is still scanned. Matching runs on the normalized,
+            confusable-folded string. Known limit: a whitelisted token placed
+            inside an attack word splits it once the span is removed, which
+            requires knowing the operator's whitelist.
     """
 
     def __init__(
@@ -157,10 +210,13 @@ class PromptInjectionDetector:
         if not isinstance(value, str):
             return []
 
-        normalized = unicodedata.normalize("NFKC", value)
+        normalized = _fold(value)
 
-        if self._whitelist and any(p.search(normalized) for p in self._whitelist):
-            return []
+        if self._whitelist:
+            for p in self._whitelist:
+                normalized = p.sub(lambda m: " " if m.end() > m.start() else "", normalized)
+            if not normalized.strip():
+                return []
 
         findings: list[InjectionFinding] = []
         preview = self._truncate(value)
