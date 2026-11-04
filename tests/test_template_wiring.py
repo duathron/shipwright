@@ -206,6 +206,11 @@ _GOOD = {
         ("cli_command", "x$(touch /tmp/PWN1)"),
         ("env_prefix", "acme"),
         ("python_version", '3.11"\n    secrets: inherit'),
+        ("package_name", "acme\n"),
+        ("cli_command", "acme\n"),
+        ("env_prefix", "ACME\n"),
+        ("python_version", "3.11\n"),
+        ("python_version", "3.\u0661\u0661"),
     ],
 )
 def test_copier_answers_hostile_values_rejected(tmp_path, field, value):

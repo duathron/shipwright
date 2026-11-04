@@ -46,7 +46,7 @@ author_email:
 python_version:
   type: str
   validator: >-
-    {% if not (python_version | regex_search('\A3\.\d+\Z')) %}python_version must look like 3.11{% endif %}
+    {% if not (python_version | regex_search('\A3\.[0-9]{1,2}\Z')) %}python_version must look like 3.11{% endif %}
   default: "3.11"
 preset:
   type: str
