@@ -48,7 +48,7 @@ jobs:
           PRESET: ${{ matrix.preset }}
         run: bash scripts/template-selftest.sh "$PRESET"
 
-  # Supply-chain: generate a CycloneDX SBOM of the build env on every CI run
+  # Supply-chain: generate a CycloneDX SBOM of the locked runtime deps on every CI run
   # (demonstrable now; the release pipeline attaches one at publish time too).
   sbom:
     name: SBOM (CycloneDX)
@@ -58,8 +58,8 @@ jobs:
         with:
           persist-credentials: false
       - uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
-      - run: uv sync --locked --dev
-      - run: uvx --from cyclonedx-bom cyclonedx-py environment --output-format JSON --output-file sbom.cdx.json
+      - run: uv export --locked --no-dev --no-emit-project --format requirements-txt --output-file sbom-requirements.txt
+      - run: uvx --from cyclonedx-bom==7.5.0 cyclonedx-py requirements --pyproject pyproject.toml --mc-type library --output-format JSON --output-file sbom.cdx.json sbom-requirements.txt
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: sbom-cyclonedx

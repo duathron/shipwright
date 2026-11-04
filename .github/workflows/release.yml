@@ -52,17 +52,17 @@ jobs:
           enable-cache: false
       - name: Build distributions
         run: uv build
-      # --locked fails on a missing/stale uv.lock instead of emitting a wrong SBOM.
-      - name: Export locked runtime requirements
-        run: uv export --locked --no-dev --no-emit-project --format requirements-txt --output-file sbom-requirements.txt
-      - name: Generate CycloneDX SBOM
-        run: uvx --from cyclonedx-bom==7.5.0 cyclonedx-py requirements --pyproject pyproject.toml --mc-type library --output-format JSON --output-file sbom.cdx.json sbom-requirements.txt
       - name: Upload distributions
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: dist
           path: dist/
           if-no-files-found: error
+      # --locked fails on a missing/stale uv.lock instead of emitting a wrong SBOM.
+      - name: Export locked runtime requirements
+        run: uv export --locked --no-dev --no-emit-project --format requirements-txt --output-file sbom-requirements.txt
+      - name: Generate CycloneDX SBOM
+        run: uvx --from cyclonedx-bom==7.5.0 cyclonedx-py requirements --pyproject pyproject.toml --mc-type library --output-format JSON --output-file sbom.cdx.json sbom-requirements.txt
       - name: Upload SBOM artifact
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
@@ -83,6 +83,13 @@ jobs:
         with:
           name: dist
           path: dist/
+      - name: Sanity-check dist contents
+        # Catches stray/extra files in the downloaded artifact (only *.whl and
+        # *.tar.gz, at least one of each). Does NOT detect content tampering.
+        run: |
+          shopt -s nullglob
+          whl=(dist/*.whl); sdist=(dist/*.tar.gz); all=(dist/*)
+          [ ${#whl[@]} -ge 1 ] && [ ${#sdist[@]} -ge 1 ] && [ ${#all[@]} -eq $(( ${#whl[@]} + ${#sdist[@]} )) ] || { ls -la dist; echo "::error::unexpected dist contents"; exit 1; }
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@7245906fb61fa33a13554f9d5fb856fe61758086 # v1.14.3
         with:

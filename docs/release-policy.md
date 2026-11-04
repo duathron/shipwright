@@ -79,4 +79,6 @@ runtime-requirements export → CycloneDX SBOM — then a `publish` job that onl
 built `dist` artifact for PEP 740 attestations and the OIDC Trusted-Publisher upload, behind
 the `pypi` GitHub Environment; a committed, current `uv.lock` is required) exists and is
 SHA-pinned, but is invoked only in a separate, explicit publish step that also requires a
-PyPI Trusted Publisher to be configured. "Build ≠ publish."
+PyPI Trusted Publisher to be configured. "Build ≠ publish." The `build` job runs before the
+`pypi` environment approval, so the reviewer approves an artifact that is already built and
+immutable.
