@@ -5,6 +5,7 @@ import subprocess
 import tomllib
 from pathlib import Path
 
+import pytest
 import yaml
 from packaging.requirements import Requirement
 
@@ -179,3 +180,45 @@ def test_version_annotation_and_generic_extra_file(tmp_path):
     cfg = json.loads((proj / "release-please-config.json").read_text())
     extra = cfg["packages"]["."]["extra-files"]
     assert {"type": "generic", "path": "acme/__init__.py"} in extra
+
+
+_GOOD = {
+    "project_name": "Acme",
+    "pypi_name": "acme",
+    "package_name": "acme",
+    "cli_command": "acme",
+    "description": "d",
+    "env_prefix": "ACME",
+    "python_version": "3.11",
+}
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [
+        ("pypi_name", "ok-name\n"),
+        ("description", 'say "hi"'),
+        ("description", "line1\nline2"),
+        ("project_name", "back\\slash"),
+        ("author_name", "$(id)"),
+        ("author_email", "a`b@example.com"),
+        ("package_name", 'a"b'),
+        ("cli_command", "x$(touch /tmp/PWN1)"),
+        ("env_prefix", "acme"),
+        ("python_version", '3.11"\n    secrets: inherit'),
+    ],
+)
+def test_copier_answers_hostile_values_rejected(tmp_path, field, value):
+    data = {**_GOOD, field: value}
+    cmd = ["copier", "copy", "--defaults", "--vcs-ref", "HEAD"]
+    for k, v in data.items():
+        cmd += ["--data", f"{k}={v}"]
+    res = subprocess.run(
+        [*cmd, ".", str(tmp_path / "proj")],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    assert res.returncode != 0
+    assert "Validation error" in res.stderr
+    assert not (tmp_path / "proj").exists() or not list((tmp_path / "proj").iterdir())
