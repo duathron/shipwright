@@ -1,3 +1,5 @@
+import pytest
+
 from shipwright_kit.security.render import SAFE_RENDER_VERSION, safe_render
 
 
@@ -24,4 +26,53 @@ class TestSafeRender:
         assert safe_render("a\x00b\x07c\td\ne") == "abc\td\ne"
 
     def test_version_constant(self):
-        assert SAFE_RENDER_VERSION == 1
+        assert SAFE_RENDER_VERSION == 2
+
+
+_BIDI_AND_INVISIBLE = [
+    "\u200b",
+    "\u200e",
+    "\u200f",
+    "\u202a",
+    "\u202b",
+    "\u202c",
+    "\u202d",
+    "\u202e",
+    "\u2060",
+    "\u2066",
+    "\u2067",
+    "\u2068",
+    "\u2069",
+    "\u061c",
+    "\ufeff",
+]
+
+
+class TestBidiAndInvisibleStripped:
+    """Audit F14: bidi overrides / zero-width characters reorder or hide text."""
+
+    @pytest.mark.parametrize("cp", _BIDI_AND_INVISIBLE, ids=lambda c: f"U+{ord(c):04X}")
+    def test_stripped(self, cp):
+        payload = "abc" + cp + "dcba"
+        assert cp in payload
+        out = safe_render(payload)
+        assert cp not in out
+        assert out == "abcdcba"
+
+    @pytest.mark.parametrize("cp", _BIDI_AND_INVISIBLE, ids=lambda c: f"U+{ord(c):04X}")
+    def test_stripped_without_markup_escape(self, cp):
+        payload = "abc" + cp + "dcba"
+        assert cp in payload
+        assert safe_render(payload, escape_markup=False) == "abcdcba"
+
+    def test_tab_and_newline_preserved(self):
+        assert safe_render("a\tb\nc") == "a\tb\nc"
+
+    def test_non_ascii_text_preserved(self):
+        assert safe_render("M\u00fcller \u6771\u4eac") == "M\u00fcller \u6771\u4eac"
+
+    @pytest.mark.parametrize("cp", ["\u200d", "\u200c"], ids=lambda c: f"U+{ord(c):04X}")
+    def test_zwj_and_zwnj_preserved(self, cp):
+        payload = "a" + cp + "b"
+        assert cp in payload
+        assert safe_render(payload) == payload
