@@ -471,6 +471,32 @@ class TestOllamaExceptionTransparency:
             )
 
 
+class TestOllamaBaseUrlScheme:
+    """Audit F10: only http(s) base URLs may reach urlopen (file://, ftp:// would be read/fetched)."""
+
+    @pytest.mark.parametrize("base_url", ["file:///etc/hosts", "ftp://x", "FILE:///etc/hosts", "localhost:11434", ""])
+    def test_non_http_scheme_rejected_before_urlopen(self, monkeypatch, base_url):
+        def fail_urlopen(*args, **kwargs):
+            raise AssertionError("urlopen must not be called for an unsupported scheme")
+
+        monkeypatch.setattr("shipwright_kit.llm.urllib.request.urlopen", fail_urlopen)
+        with pytest.raises(ValueError, match="base_url scheme"):
+            ollama_generate(base_url=base_url, model="m", system="s", user="u", timeout=None, system_mode="fold")
+
+    def test_scheme_error_is_distinct_from_system_mode_error(self, monkeypatch):
+        monkeypatch.setattr("shipwright_kit.llm.urllib.request.urlopen", lambda *a, **k: None)
+        with pytest.raises(ValueError, match="base_url scheme"):
+            ollama_generate(base_url="ftp://x", model="m", system="s", user="u", timeout=None, system_mode="bogus")
+
+    @pytest.mark.parametrize(
+        "base_url", ["http://localhost:11434", "https://ollama.example.com", "HTTP://localhost:11434"]
+    )
+    def test_http_and_https_accepted(self, monkeypatch, base_url):
+        _install_fake_urlopen(monkeypatch, {"response": "ok"})
+        out = ollama_generate(base_url=base_url, model="m", system="s", user="u", timeout=None, system_mode="fold")
+        assert out == "ok"
+
+
 # ---------------------------------------------------------------------------
 # Dumb-transport contract: no redaction/scanning of system/user text.
 # ---------------------------------------------------------------------------

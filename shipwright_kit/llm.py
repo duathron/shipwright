@@ -26,7 +26,7 @@ caller unchanged so each tool can keep its own existing error handling
 (re-raise as ``RuntimeError``, swallow-and-fall-back-to-template, etc.) without
 this module making that policy choice for them. The only exception raised
 *by* this module itself is ``ValueError`` for an unrecognized ``extract``/
-``system_mode`` literal — an input-validation guard, not error-swallowing.
+``system_mode`` literal or a non-http(s) Ollama ``base_url`` scheme — an input-validation guard, not error-swallowing.
 
 No ``max_tokens``/``temperature`` default is baked in here (the config.py
 lesson: no schema in the mechanism) — callers supply every value.
@@ -40,6 +40,7 @@ from __future__ import annotations
 import json
 import urllib.request
 from typing import Any
+from urllib.parse import urlsplit
 
 __all__ = ["anthropic_complete", "ollama_generate", "openai_complete"]
 
@@ -189,7 +190,10 @@ def ollama_generate(
     tool's own call site is responsible for any such post-processing.
 
     Raises:
-        ValueError: ``system_mode`` is not one of the two known modes.
+        ValueError: ``base_url`` has a scheme other than ``http``/``https``
+            (``file://``, ``ftp://`` etc. would be opened by ``urlopen``), or
+            ``system_mode`` is not one of the two known modes. Loopback and
+            private hosts stay allowed on purpose (local Ollama).
         urllib.error.URLError, OSError: network/HTTP failure — propagates
             unchanged, no try/except here.
         json.JSONDecodeError: the outer HTTP body is not valid JSON —
@@ -197,6 +201,10 @@ def ollama_generate(
         KeyError: the outer JSON envelope has no ``"response"`` key —
             propagates unchanged.
     """
+    scheme = urlsplit(base_url).scheme.lower()
+    if scheme not in {"http", "https"}:
+        raise ValueError(f"unsupported base_url scheme: {scheme or '(none)'!r}")
+
     generate_url = f"{base_url.rstrip('/')}/api/generate"
 
     if system_mode == "fold":
