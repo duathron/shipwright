@@ -20,6 +20,8 @@ jobs:
   lint-and-test:
     name: Lint, test${{ inputs.run-build && ', build' || '' }}
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     defaults:
       run:
         working-directory: ${{ inputs.working-directory }}
@@ -58,7 +60,7 @@ jobs:
         env:
           PYTHON_VERSION: ${{ inputs.python-version }}
         run: uv python install "$PYTHON_VERSION"
-      - name: Workflow lint (zizmor)
+      - name: Workflow lint (zizmor, online)
         # Security-focused GHA linter — catches the aikido-found bug classes
         # (template-injection ${{ }} in run:, missing persist-credentials:false,
         # broad permissions, unpinned actions) BEFORE merge. This step runs
@@ -67,12 +69,53 @@ jobs:
         # reusable gets the gate for free (fleet propagation). Version pinned so
         # a zizmor release with new/changed rules can't silently break fleet CI;
         # bump deliberately after a local `uvx zizmor@<new>` run stays green.
-        # --offline: enforce the static security audits only (every aikido class is
-        # offline). Online audits are excluded on purpose: ref-version-mismatch is
-        # comment-hygiene (the SHA pin is authoritative) and known-vulnerable-actions
-        # is covered by dependabot. Offline also keeps CI deterministic + identical
-        # to local `uvx zizmor` runs (which have no token).
-        run: uvx zizmor@1.26.1 --offline "$GITHUB_WORKSPACE/.github/workflows/"
+        # Online on purpose: the online audits (known-vulnerable-actions,
+        # impostor-commit) are what catch a vulnerable pinned action such as
+        # GHSA-5xjx-3w67-w9x9; dependabot alone does not gate a merge. Online
+        # audits silently no-op without a token, so (1) the step fails when
+        # GH_TOKEN is empty and (2) a canary workflow pinned to the vulnerable
+        # action must be flagged with that exact advisory ID, else the step fails
+        # (never trusts a bare exit code). ref-version-mismatch stays disabled:
+        # it is comment hygiene (the SHA pin is authoritative). The config lives
+        # in $RUNNER_TEMP because a reusable workflow only checks out the
+        # CALLER's repo. The real scan targets the repo ROOT (not just
+        # .github/workflows/) so composite actions under .github/actions/ and
+        # dependabot.yml are covered. --collect=all also scans files that are
+        # gitignored; --strict-collection makes an unparsable/schema-invalid
+        # workflow a hard error instead of a skipped WARN with rc 0;
+        # --no-ignores disables inline "# zizmor: ignore[...]" comments so a
+        # finding cannot be silenced from the PR. --config and --no-ignores
+        # deliberately REPLACE a consumer's own .github/zizmor.yml and its
+        # inline ignores. Editing the caller's ci.yml is out of scope here
+        # (branch protection / CODEOWNERS).
+        # Accepted flake mode: needs github.com; an outage or bad token fails
+        # the step (fail-closed).
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          test -n "$GH_TOKEN" || { echo "::error::GH_TOKEN empty - zizmor online audits would silently no-op"; exit 1; }
+          cfg="$RUNNER_TEMP/zizmor.yml"
+          cat > "$cfg" <<'ZCFG'
+          rules:
+            ref-version-mismatch:
+              disable: true
+          ZCFG
+          canary="$RUNNER_TEMP/zizmor-canary"
+          mkdir -p "$canary/.github/workflows"
+          cat > "$canary/.github/workflows/canary.yml" <<'CANARY'
+          name: canary
+          on: workflow_dispatch
+          permissions: {}
+          jobs:
+            canary:
+              runs-on: ubuntu-latest
+              permissions: {}
+              steps:
+                - uses: pypa/gh-action-pypi-publish@cef221092ed1bacb1cc03d23a2d87d1d172e277b # v1.14.0
+          CANARY
+          out=$(uvx zizmor@1.26.1 --config "$cfg" "$canary" 2>&1) || true
+          grep -q 'GHSA-5xjx-3w67-w9x9' <<<"$out" || { echo "$out"; echo "::error::zizmor canary not flagged (online audit inactive or API error, see output above)"; exit 1; }
+          uvx zizmor@1.26.1 --strict-collection --collect=all --no-ignores --config "$cfg" "$GITHUB_WORKSPACE"
       - name: Workflow lint (actionlint)
         # Syntax/semantics linter (not security-focused — zizmor covers that).
         # reporter:local + filter_mode:nofilter + fail_level:error: reports ALL
@@ -86,7 +129,7 @@ jobs:
           filter_mode: nofilter
           fail_level: error
       - name: Sync dev environment
-        run: uv sync --dev
+        run: uv sync --locked --dev
       - name: Lint
         run: |
           uv run ruff check .
