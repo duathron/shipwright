@@ -32,6 +32,10 @@ Copy Shipwright's own `.github/workflows/release.yml` (at the release tag you pi
 
 The release runs as two jobs: `build` (`contents: read`, no OIDC) builds `dist` and the CycloneDX SBOM from the locked runtime dependencies, then `publish` (`id-token: write`, in the Environment) only downloads `dist` and uploads it to PyPI. The project must commit a current `uv.lock` (the SBOM is exported with `uv export --locked`; a stale lock fails the build before anything is published).
 
+Callers of the reusable `python-release.yml` must not reuse the concurrency group name `shipwright-python-release-<ref>` in their own workflow.
+
+While a publish waits for the `pypi` Environment approval, later pushes to `main` queue behind it (GitHub keeps one pending run; release-please is idempotent), so approve or reject the waiting publish to unblock them.
+
 The project must include `release-please-config.json` and `.release-please-manifest.json` at its root (Shipwright ships canonical templates under `templates/release/`).
 
 **uv.lock extra-files:** add a second `extra-files` entry to `release-please-config.json` so release PRs keep `uv.lock` in sync (otherwise `uv sync --locked` fails on every release PR): `{"type": "toml", "path": "uv.lock", "jsonpath": "$.package[?(@.name.value=='<dist-name>')].version"}`, where `<dist-name>` is your distribution name normalised the way uv stores it (lower-case, runs of `-`, `_`, `.` collapsed to `-`). The static `templates/release/release-please-config.json` cannot know your name, so it omits this entry; the Copier template renders it for you.
