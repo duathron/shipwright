@@ -1,5 +1,9 @@
 name: Reusable Python Release
 
+# Two-job release: `build` (contents: read, no OIDC) builds dist + SBOM, `publish`
+# (id-token: write) only downloads `dist` and uploads. Requires a committed,
+# current `uv.lock` (SBOM is exported with `uv export --locked`).
+
 on:
   workflow_call:
     inputs:
@@ -40,14 +44,13 @@ jobs:
           config-file: ${{ inputs.config-file }}
           manifest-file: ${{ inputs.manifest-file }}
 
-  publish:
-    name: Build + publish to PyPI (OIDC)
+  build:
+    name: Build + SBOM (no OIDC)
     needs: release-please
     if: ${{ needs.release-please.outputs.release_created == 'true' }}
     runs-on: ubuntu-latest
-    environment: ${{ inputs.release-environment }}
     permissions:
-      id-token: write
+      contents: read
     steps:
       - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10  # v6
         with:
@@ -58,13 +61,37 @@ jobs:
           enable-cache: false
       - name: Build distributions
         run: uv build
+      # --locked fails on a missing/stale uv.lock instead of emitting a wrong SBOM.
+      - name: Export locked runtime requirements
+        run: uv export --locked --no-dev --no-emit-project --format requirements-txt --output-file sbom-requirements.txt
       - name: Generate CycloneDX SBOM
-        run: uvx --from cyclonedx-bom cyclonedx-py environment --output-format JSON --output-file sbom.cdx.json
+        run: uvx --from cyclonedx-bom==7.5.0 cyclonedx-py requirements --pyproject pyproject.toml --mc-type library --output-format JSON --output-file sbom.cdx.json sbom-requirements.txt
+      - name: Upload distributions
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4
+        with:
+          name: dist
+          path: dist/
+          if-no-files-found: error
       - name: Upload SBOM artifact
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4
         with:
           name: sbom-cyclonedx
           path: sbom.cdx.json
+
+  publish:
+    name: Publish to PyPI (OIDC)
+    needs: [release-please, build]
+    if: ${{ needs.release-please.outputs.release_created == 'true' }}
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.release-environment }}
+    permissions:
+      id-token: write
+    steps:
+      - name: Download distributions
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093  # v4.3.0
+        with:
+          name: dist
+          path: dist/
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@7245906fb61fa33a13554f9d5fb856fe61758086  # v1.14.3
         with:
