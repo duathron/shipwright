@@ -78,7 +78,16 @@ jobs:
         # (never trusts a bare exit code). ref-version-mismatch stays disabled:
         # it is comment hygiene (the SHA pin is authoritative). The config lives
         # in $RUNNER_TEMP because a reusable workflow only checks out the
-        # CALLER's repo; --config overrides a consumer's own .github/zizmor.yml.
+        # CALLER's repo. The real scan targets the repo ROOT (not just
+        # .github/workflows/) so composite actions under .github/actions/ and
+        # dependabot.yml are covered. --collect=all also scans files that are
+        # gitignored; --strict-collection makes an unparsable/schema-invalid
+        # workflow a hard error instead of a skipped WARN with rc 0;
+        # --no-ignores disables inline "# zizmor: ignore[...]" comments so a
+        # finding cannot be silenced from the PR. --config and --no-ignores
+        # deliberately REPLACE a consumer's own .github/zizmor.yml and its
+        # inline ignores. Editing the caller's ci.yml is out of scope here
+        # (branch protection / CODEOWNERS).
         # Accepted flake mode: needs github.com; an outage or bad token fails
         # the step (fail-closed).
         env:
@@ -106,7 +115,7 @@ jobs:
           CANARY
           out=$(uvx zizmor@1.26.1 --config "$cfg" "$canary" 2>&1) || true
           grep -q 'GHSA-5xjx-3w67-w9x9' <<<"$out" || { echo "$out"; echo "::error::zizmor canary not flagged (online audit inactive or API error, see output above)"; exit 1; }
-          uvx zizmor@1.26.1 --config "$cfg" "$GITHUB_WORKSPACE/.github/workflows/"
+          uvx zizmor@1.26.1 --strict-collection --collect=all --no-ignores --config "$cfg" "$GITHUB_WORKSPACE"
       - name: Workflow lint (actionlint)
         # Syntax/semantics linter (not security-focused — zizmor covers that).
         # reporter:local + filter_mode:nofilter + fail_level:error: reports ALL
