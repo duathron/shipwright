@@ -123,7 +123,7 @@ jobs:
         # reporter:local's default diff-filter has no diff and errors with "diff
         # command is empty") and fails the step on actionlint errors, without
         # needing PR-check/write permissions (read-only token is enough).
-        uses: reviewdog/action-actionlint@6fb7acc99f4a1008869fa8a0f09cfca740837d9d # v1.72.0
+        uses: reviewdog/action-actionlint@619a81ec64ff8c0211cd6146eb2b21e8f1d7f440 # v1.81.1
         with:
           reporter: local
           filter_mode: nofilter
