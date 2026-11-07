@@ -22,6 +22,12 @@ TEMPLATE = ROOT / "templates" / "python-cli" / "project" / ".github" / "workflow
 _RAW = re.compile(r"\{%-\s*raw\s*%\}(.*?)\{%\s*endraw\s*-%\}\s*", re.S)
 _HEADER_PREFIX = "# Copy of shipwright"
 _HEADER_INDEX = 1  # 0-based line index inside the raw body
+# Exact header text (update together with the version on every re-sync).
+_HEADER = (
+    "# Copy of shipwright `.github/workflows/release.yml` at v0.12.1"
+    " - re-sync from shipwright on template update (drift note);"
+    " keep this filename - your PyPI Trusted Publisher names it."
+)
 
 
 def _read(path: Path) -> str:
@@ -37,6 +43,7 @@ def template_body(text: str) -> str:
     lines = m.group(1).split("\n")
     headers = [i for i, ln in enumerate(lines) if ln.startswith(_HEADER_PREFIX)]
     assert headers == [_HEADER_INDEX], f"copy-header must appear exactly once at line {_HEADER_INDEX}, got {headers}"
+    assert lines[_HEADER_INDEX] == _HEADER, "copy-header text differs from the expected literal"
     del lines[_HEADER_INDEX]
     return "\n".join(lines)
 
