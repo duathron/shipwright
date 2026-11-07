@@ -53,6 +53,7 @@ dev = [
     "rich>=13.7",
     "copier>=9",
     "packaging",
+    "pyyaml>=6.0",
     "typer>=0.9",
     "urllib3>=2.8.0,<3",
 ]

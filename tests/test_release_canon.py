@@ -24,7 +24,7 @@ _HEADER_PREFIX = "# Copy of shipwright"
 _HEADER_INDEX = 1  # 0-based line index inside the raw body
 # Exact header text (update together with the version on every re-sync).
 _HEADER = (
-    "# Copy of shipwright `.github/workflows/release.yml` at v0.12.1"
+    "# Copy of shipwright `.github/workflows/release.yml` at v0.12.2"
     " - re-sync from shipwright on template update (drift note);"
     " keep this filename - your PyPI Trusted Publisher names it."
 )
