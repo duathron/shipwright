@@ -3,6 +3,13 @@
 All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 and [Semantic Versioning](https://semver.org/).
 
+## [0.12.2](https://github.com/duathron/shipwright/compare/v0.12.1...v0.12.2) (2026-11-07)
+
+
+### Bug Fixes
+
+* **template:** name v0.12.2 in release.yml header, end copier answers with one newline ([#57](https://github.com/duathron/shipwright/issues/57)) ([e81f8a8](https://github.com/duathron/shipwright/commit/e81f8a8d1d095cb63b0ae686a498cd59075c15df))
+
 ## [0.12.1](https://github.com/duathron/shipwright/compare/v0.12.0...v0.12.1) (2026-11-04)
 
 
