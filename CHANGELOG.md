@@ -3,6 +3,13 @@
 All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 and [Semantic Versioning](https://semver.org/).
 
+## [0.12.3](https://github.com/duathron/shipwright/compare/v0.12.2...v0.12.3) (2026-11-09)
+
+
+### Bug Fixes
+
+* **security:** add public matched_length so consumers stop importing the private _fold ([#60](https://github.com/duathron/shipwright/issues/60)) ([cf8d845](https://github.com/duathron/shipwright/commit/cf8d8454c0af0b2a3e695d72ca236f974eea2489))
+
 ## [0.12.2](https://github.com/duathron/shipwright/compare/v0.12.1...v0.12.2) (2026-11-07)
 
 
