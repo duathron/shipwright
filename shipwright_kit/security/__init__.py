@@ -6,6 +6,7 @@ from shipwright_kit.security.injection import (
     InjectionFinding,
     PromptInjectionDetector,
     SeverityLevel,
+    matched_length,
     scan,
 )
 from shipwright_kit.security.ssrf import (
@@ -22,5 +23,6 @@ __all__ = [
     "UnsafeURLError",
     "assert_safe_url",
     "is_safe_url",
+    "matched_length",
     "scan",
 ]

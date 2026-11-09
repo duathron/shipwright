@@ -143,6 +143,23 @@ domain's eval floors (no false positives; recall ≥ 0.70) — feed them to `gat
 `shipwright_kit.security.theme` maps `Severity` onto security labels (CLEAN → LOW →
 SUSPICIOUS → HIGH → MALICIOUS) and registers a `SecurityTheme` for rendering.
 
+### Injection detector — `matched_length`
+
+`shipwright_kit.security.injection.matched_length(value) -> int` is the length of
+the shortest text the detector actually matches against (the shorter of the
+"invisibles dropped" and "invisibles as space" folds that
+`PromptInjectionDetector.detect` scans). Use it to size windows or seams so a
+pattern cannot be stretched past them by characters the detector drops
+(combining marks, zero-width/control/private-use characters, fillers such as
+U+3164). It replaces importing the private `_fold`, which is kept only for
+backward compatibility.
+
+```python
+from shipwright_kit.security.injection import matched_length
+
+matched_length("ig\u200bnore")   # 6, not 7
+```
+
 ### SSRF guard — `assert_safe_url` / `is_safe_url`
 
 `shipwright_kit.security.ssrf` blocks outbound requests to non-public

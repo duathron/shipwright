@@ -22,3 +22,14 @@ def test_exports_available_from_security_package():
         PromptInjectionDetector,
         SeverityLevel,
     )
+
+
+def test_matched_length_import_is_light():
+    code = (
+        "import sys; "
+        "from shipwright_kit.security.injection import matched_length; "
+        "assert matched_length('ab') == 2; "
+        "assert 'pydantic' not in sys.modules; print('ok')"
+    )
+    out = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True)
+    assert out.returncode == 0, out.stderr
