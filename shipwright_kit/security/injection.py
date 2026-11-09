@@ -24,6 +24,7 @@ __all__ = [
     "InjectionFinding",
     "PromptInjectionDetector",
     "SeverityLevel",
+    "matched_length",
     "scan",
 ]
 
@@ -97,6 +98,9 @@ _DROP_CATEGORIES = frozenset({"Mn", "Me", "Cf", "Cs", "Co", "Cc"})
 _FILLERS = frozenset("\u115f\u1160\u3164\uffa0\u2800\u17b4\u17b5\ufffc\u0640\U0001d159")
 
 
+# NOTE: ``_fold`` is private. It is kept unchanged only for backward
+# compatibility with consumers that already import it (sift 1.4.0). External
+# callers must use the public ``matched_length`` instead.
 def _fold(value: str, invisible_as: str = "") -> str:
     """NFKD, normalize whitespace, neutralize invisibles, fold confusables.
 
@@ -122,6 +126,16 @@ def _fold_variants(value: str) -> list[str]:
     dropped = _fold(value)
     spaced = _fold(value, " ")
     return [dropped] if spaced == dropped else [dropped, spaced]
+
+
+def matched_length(value: str) -> int:
+    """Length of the shortest text the detector actually matches against.
+
+    Use it to size windows/seams so a pattern cannot be stretched past them by
+    characters the detector drops. Defined as the minimum length over the same
+    folded variants ``PromptInjectionDetector.detect`` iterates.
+    """
+    return min(len(v) for v in _fold_variants(value))
 
 
 class SeverityLevel(str, Enum):
